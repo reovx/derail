@@ -80,7 +80,7 @@ wallet can fund itself from the balance panel via Friendbot.
 apps/web           Next.js app — run list, timeline, ingest API, wallet
 packages/cli       the `derail` wrapper
 supabase           schema migrations and the poller Edge Function
-contracts          derail_gate, the gated_target template, and one reference contract
+contracts          derail_gate and the gated_target starter template
 scripts            project and token seeding
 docs/specs         what we are building and why
 docs/checklists    belt-level requirement trackers

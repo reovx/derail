@@ -5,7 +5,7 @@
 #   ./scripts/deploy-gate.sh <signing-identity> <approver-1> <approver-2> [approver-3 ...]
 #
 # Example:
-#   ./scripts/deploy-gate.sh ref-deployer \
+#   ./scripts/deploy-gate.sh derail-deployer \
 #     GC5N7WGW... GCWSAJE6... GABC1234...
 #
 # Threshold defaults to 1 and can be overridden with THRESHOLD=2.

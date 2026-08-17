@@ -1,6 +1,6 @@
 [workspace]
 resolver = "2"
-members = ["derail_gate", "gated_target", "milestone_proof"]
+members = ["derail_gate", "gated_target"]
 
 [workspace.package]
 version = "0.1.0"

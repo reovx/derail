@@ -1,6 +1,6 @@
 {
   "slug": "05-upgrade-bad-hash",
-  "argv": ["stellar", "contract", "invoke", "--id", "CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME", "--source", "ref-deployer", "--network", "testnet", "--", "upgrade", "--new_wasm_hash", "1111111111111111111111111111111111111111111111111111111111111111"],
+  "argv": ["stellar", "contract", "invoke", "--id", "CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME", "--source", "derail-deployer", "--network", "testnet", "--", "upgrade", "--new_wasm_hash", "1111111111111111111111111111111111111111111111111111111111111111"],
   "exit_code": 1,
   "started_at": "2026-08-16T23:42:09Z",
   "duration_ms": 969,

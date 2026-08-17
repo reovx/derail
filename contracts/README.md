@@ -1,224 +1,101 @@
-# Reference Soroban contracts
+# Derail contracts
 
-Rust workspace for the reference builder task hub's on-chain components.
+Rust workspace for Derail's on-chain components.
 
 | Crate | Purpose |
 | --- | --- |
-| [`milestone_proof`](./milestone_proof) | Registers project references and records milestone proof hashes with an owner-gated approve/reject flow. |
+| [`derail_gate`](./derail_gate) | The upgrade approval gate. An upgrade cannot land until N approvers have signed for it on-chain. |
+| [`gated_target`](./gated_target) | Starter template. Build your contract on this and upgrades are gated by default. |
 
-Built against **soroban-sdk 27.0.4** and **stellar CLI 27.x**, targeting `wasm32v1-none`.
+Built against **soroban-sdk 27** and **stellar CLI 27.1.0**, targeting `wasm32v1-none`.
 
-## `milestone_proof` interface
+Specified in [`../docs/specs/SPEC-BELT-LEVELS.md`](../docs/specs/SPEC-BELT-LEVELS.md) §2.
+
+## Why the gate is on-chain
+
+Derail records that contract deploys are rare, high-stakes and hard to undo. The
+gate is the part that acts on it, and it is the one component that genuinely
+belongs on-chain, for three reasons a database cannot meet:
+
+- **Enforceable.** A rule in Postgres is bypassed by running the `stellar` CLI
+  directly. A rule in the contract is not.
+- **Non-repudiable.** "Who approved this?" needs a signature, not a row.
+- **Co-located.** The gate *holds the target's upgrade authority*. A database
+  cannot sign a Soroban transaction, so it could never be what the target trusts.
+
+## `derail_gate` interface
 
 | Function | Auth | Notes |
 | --- | --- | --- |
-| `create_project_ref(project_id: String, owner: Address)` | `owner` | Errors `ProjectExists` (1) if the id is taken. |
-| `transfer_project_owner(project_id: String, current_owner: Address, new_owner: Address)` | **both** | `current_owner` must equal the address in storage. Milestone records untouched. |
-| `submit_milestone_proof(project_id: String, milestone_id: String, submitter: Address, proof_hash: BytesN<32>)` | `submitter` | Sets status `Submitted`, increments `version`, stamps `env.ledger().timestamp()`. |
-| `approve_milestone(project_id: String, milestone_id: String, approver: Address)` | `approver`, must equal the project owner | Only valid from `Submitted`. |
-| `reject_milestone(project_id: String, milestone_id: String, approver: Address)` | `approver`, must equal the project owner | Only valid from `Submitted`. |
-| `get_milestone_status(project_id: String, milestone_id: String) -> MilestoneRecord` | none | Read-only; errors `MilestoneNotFound` (3). |
+| `register_target(target, approvers, threshold, admin)` | `admin` | Errors if already registered. At least 2 approvers; threshold at most `len - 1`. |
+| `propose_upgrade(target, new_wasm_hash, proposer) -> u32` | `proposer` | Proposer must be an approver. Returns the proposal id. |
+| `approve(target, proposal_id, approver)` | `approver` | Must be in the set, cannot be the proposer, cannot approve twice. |
+| `reject(target, proposal_id, approver)` | `approver` | Terminal. The proposer may reject to withdraw. |
+| `execute(target, proposal_id)` | none | Only at or above threshold. Cross-contract call to `target.upgrade`. |
+| `set_approvers(target, approvers, threshold, signers)` | **threshold of current approvers** | Not the admin — see below. |
+| `get_proposal(target, proposal_id) -> Proposal` | none | Read-only. Resolves `Approved` and `Expired` on read. |
+| `get_target(target) -> TargetConfig` | none | Read-only. |
 
-State machine: `Proposed -> Submitted -> Approved | Rejected`. A rejected milestone may be
-re-submitted; an approved one is terminal.
+State machine: `Open → Approved → Executed`, plus `Rejected` and `Expired`.
 
-Errors: `ProjectExists = 1`, `ProjectNotFound = 2`, `MilestoneNotFound = 3`,
-`NotAuthorized = 4`, `InvalidStatus = 5`, `IdTooLong = 6`.
+### Rules worth knowing before you use it
 
-### Why `String` and not `Symbol`
+- **`Approved` and `Expired` are never stored.** Both depend on state outside the
+  proposal — the current approver set, and the ledger — so they are derived on
+  read. Expiry beats a met threshold.
+- **Only approvals from addresses still in the set count.** Removing an approver
+  takes effect immediately; their signature stays recorded but stops counting.
+- **The proposer cannot self-approve**, same as code review. That is why the
+  threshold ceiling is one below the set size: otherwise a 2-of-2 gate could
+  never pass anything.
+- **Changing the approver set needs the current threshold, not the admin.** One
+  key able to rewrite the set would mean the gate is bypassed by adding yourself.
+- **`execute` is unauthenticated.** Everything that matters was already signed
+  for, so a bot can push the button and the last approver pays no second fee.
+- **Proposals expire after ~7 days**, so a stale approval cannot be cashed in
+  months later against code nobody has looked at since.
 
-The app's ids are 36-character UUIDs. Soroban's `Symbol` caps at 32 characters and
-its alphabet excludes `-`, so a UUID only fits by stripping its hyphens to land on
-exactly 32 — no headroom, and a lossy-looking conversion at the call boundary.
-`String` takes the id as the app already has it. Ids are capped at 64 characters
-(`IdTooLong`) so a caller cannot make the ledger carry an unbounded key.
+### Approvals are individual transactions
 
-### Why a transfer needs two signatures
+Soroban can collect pre-signed authorization entries off-chain and submit one
+transaction at the end. **Do not use it that way here.** A rejected proposal, or
+one abandoned at 1-of-2, would then leave no on-chain trace at all — which would
+recreate the exact problem Derail exists to solve.
 
-`transfer_project_owner` calls `require_auth()` on the outgoing owner *and* the
-incoming one. The outgoing signature proves the right to give the project away;
-the incoming signature proves the destination is an address someone actually
-controls.
+Each approver pays their own fee. That is real onboarding friction and the reason
+fee sponsorship is the planned advanced feature.
 
-Requiring only the first would let this function recreate the exact problem it
-exists to solve. A project registered to an address nobody can sign for is stuck
-forever — there is no admin and no upgrade path — and a one-sided transfer could
-put a project into that state with a single typo, permanently. The cost is that
-a handover is a two-party transaction rather than a one-click action.
+## The template's one constraint
 
-It fixes a wrong-but-controlled address, a planned handover, and key rotation.
-It does **not** recover a lost key: a lost key cannot sign as `current_owner`.
-Nothing here can, and that is the deliberate price of having no admin address.
+`gated_target` has no `set_gate`. A contract that can be re-pointed at a different
+gate by whoever holds a key is gated *until someone decides otherwise*, which is
+not gated.
 
-### `version`
+**This cannot be retrofitted.** A contract already live with a plain admin key
+answers to that key forever — the gate only governs contracts written against it.
+It costs nothing at first deploy and is impossible later.
 
-`MilestoneRecord.version` counts submissions, starting at 1. A re-submission
-overwrites `proof_hash`, so without the counter the ledger would show only the
-latest hash with no evidence an earlier one existed. Approve and reject preserve
-it — they attest to a submission rather than making one.
+## Build and test
 
-### Events
-
-Every write emits one, and a failed call emits none. Uniform shape:
-
-| Topic 0 | Topic 1 | Topic 2 | Data |
-| --- | --- | --- | --- |
-| `ref` | `register` | `project_id` | `owner` |
-| `ref` | `transfer` | `project_id` | `previous_owner`, `new_owner` |
-| `ref` | `submit` | `project_id` | `milestone_id`, `submitter`, `proof_hash`, `version` |
-| `ref` | `approve` | `project_id` | `milestone_id`, `approver`, `version` |
-| `ref` | `reject` | `project_id` | `milestone_id`, `approver`, `version` |
-
-Topic 0 is constant so one predicate filters every event of this contract; topic 2
-is indexed so a consumer can watch a single project without decoding each body.
-The types are declared with `#[contractevent]`, so they appear in the contract
-spec and `stellar contract bindings typescript` generates types for them.
-
-Records live in `persistent` storage; every write extends the TTL of every key it
-touches back out to ~90 days, topped up whenever fewer than ~30 days remain.
-
-## Prerequisites
-
-```sh
-rustup target add wasm32v1-none
-# stellar CLI 27.x: https://developers.stellar.org/docs/tools/cli
-stellar --version
-```
-
-## Build
-
-```sh
-cd contracts
-
-# Preferred: also optimizes the wasm and prints the hash.
-stellar contract build
-
-# Equivalent raw cargo build.
-cargo build --target wasm32v1-none --release
-```
-
-Artifact: `contracts/target/wasm32v1-none/release/milestone_proof.wasm`.
-
-## Test
-
-```sh
-cd contracts
-cargo test
+```bash
+cargo test --workspace
 cargo clippy --all-targets -- -D warnings
-cargo fmt --all --check
-```
-
-## Deploy to testnet
-
-One-time identity and funding:
-
-```sh
-stellar keys generate ref-deployer --network testnet --fund
-stellar keys address ref-deployer
-```
-
-Deploy the built wasm:
-
-```sh
-cd contracts
+cargo fmt --all -- --check
 stellar contract build
-
-stellar contract deploy \
-  --wasm target/wasm32v1-none/release/milestone_proof.wasm \
-  --source ref-deployer \
-  --network testnet \
-  --alias milestone_proof
 ```
 
-The command prints the contract id (`C...`). Save it as
-`NEXT_PUBLIC_MILESTONE_PROOF_CONTRACT_ID` in the app's environment.
+`stellar contract build` needs the wasm target:
 
-## Deployed
-
-| | |
-| --- | --- |
-| Network | Testnet (`Test SDF Network ; September 2015`) |
-| Contract ID | [`CBP3NKXCRUSOJLLUXDF5AIRNPAC6IL7TFJ2KCNL5A2GTKC2MB7M4OHVG`](https://stellar.expert/explorer/testnet/contract/CBP3NKXCRUSOJLLUXDF5AIRNPAC6IL7TFJ2KCNL5A2GTKC2MB7M4OHVG) |
-| WASM hash | `d4bbe221cbe9837cf277448d0fe3aa99cf0dd9213a98db15b671a34dadf2a8b4` |
-| WASM upload tx | [`1d1483f0…d92cf6`](https://stellar.expert/explorer/testnet/tx/1d1483f02b3e2233cb60d67ac4ad1e0fe57b96b5fa43d71867daf5c5d7d92cf6) |
-| Deploy tx | [`afcf108f…d780ddb`](https://stellar.expert/explorer/testnet/tx/afcf108fc640fac527e474f9593c050712a9b860ea5351bc43951f465d780ddb) |
-| Deployer | `GC5N7WGWHHZEJ2PEIYAREWKGNQSWR3CME2HXBXKOJ65F3MPL27R774JZ` (`ref-deployer`) |
-| Size | 10777 bytes optimized (11899 unoptimized) |
-| Exported functions | 6 |
-
-The **WASM hash is the point of this table**: anyone can rebuild this source with
-`stellar contract build` and check the hash matches what is deployed. If it does
-not, the deployed bytes are not this code.
-
-Deployment is **not** upgradable — there is no admin address and no `upgrade`
-entry point, by choice. A bug means deploying a **new contract id** and migrating
-the `chain_contract_id` the app stores per project. Revisit before mainnet.
-
-Because there is no upgrade path, the cost of that migration scales with how much
-is already registered. It is near-zero while `projects.chain_contract_id` is null
-everywhere and `milestone_anchors` is empty; after the first `create_project_ref`
-each registered project has to be registered again under the new id, since its
-ownership stays behind in the old contract. **Check those two before assuming a
-redeploy is cheap.**
-
-### Verified live on this deployment
-
-Beyond the 26 unit tests, against the deployed contract:
-
-- `create_project_ref` emits `ProjectRegistered` and sets the owner.
-- `transfer_project_owner` **cannot be assembled without the incoming owner's
-  signature** — the CLI refuses with `Missing signing key for account G…` when
-  `new_owner` is an address it holds no key for. That is the two-signature rule
-  holding in production, not just in `mock_auths`.
-- After a transfer, the previous owner gets `Error(Contract, #4)` `NotAuthorized`
-  on the same project, so rights genuinely move rather than being shared.
-
-A caution learned while checking this: `stellar contract invoke` silently signs
-**every** auth entry it holds a local key for. A transfer between two identities
-that are both in your keystore therefore looks like it needed one signature. It
-did not — use an address you have no key for to see the requirement.
-
-### TypeScript bindings
-
-Generated from the deployed contract, never hand-written:
-
-```sh
-stellar contract bindings typescript --network testnet \
-  --contract-id CBP3NKXCRUSOJLLUXDF5AIRNPAC6IL7TFJ2KCNL5A2GTKC2MB7M4OHVG \
-  --output-dir /tmp/ref-bindings
-cp /tmp/ref-bindings/src/index.ts ../web/src/lib/chain/bindings.ts
+```bash
+rustup target add wasm32v1-none
 ```
 
-The file is ESLint-ignored and must be replaced wholesale when the contract
-changes. Because the events are declared with `#[contractevent]` they are in the
-contract spec, so the bindings carry their types too.
+## Deploy
 
-## Invoke
-
-```sh
-OWNER=$(stellar keys address ref-deployer)
-
-PROJECT=8f14e45f-ceea-467a-9b7e-5a0dcbf1c8b2   # a real project uuid
-MILESTONE=c9f0f895-fb98-4b1f-a1b3-8ee9a1d6c4e7
-
-stellar contract invoke --id milestone_proof --source ref-deployer --network testnet \
-  -- create_project_ref --project_id "$PROJECT" --owner "$OWNER"
-
-stellar contract invoke --id milestone_proof --source ref-deployer --network testnet \
-  -- submit_milestone_proof --project_id "$PROJECT" --milestone_id "$MILESTONE" \
-     --submitter "$OWNER" --proof_hash <64-hex-chars>
-
-stellar contract invoke --id milestone_proof --source ref-deployer --network testnet \
-  -- approve_milestone --project_id "$PROJECT" --milestone_id "$MILESTONE" --approver "$OWNER"
-
-stellar contract invoke --id milestone_proof --source ref-deployer --network testnet \
-  -- get_milestone_status --project_id "$PROJECT" --milestone_id "$MILESTONE"
+```bash
+../scripts/deploy-gate.sh derail-deployer <approver-address> <approver-address>
 ```
 
-`--proof_hash` is bare hex with no `0x` prefix.
-
-Inspect the deployed interface at any time:
-
-```sh
-stellar contract info interface --id milestone_proof --network testnet
-```
+The script deploys both contracts, binds the target to the gate, and registers the
+approver set. Order matters and the binding is one-shot: the gate must exist first,
+and it cannot be corrected afterwards.

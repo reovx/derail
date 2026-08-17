@@ -160,7 +160,7 @@ export function TopUpForm({
 
         <Field
           label="Identity name"
-          placeholder="ref-deployer"
+          placeholder="derail-deployer"
           spellCheck={false}
           autoComplete="off"
           value={name}

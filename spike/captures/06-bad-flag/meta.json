@@ -1,6 +1,6 @@
 {
   "slug": "06-bad-flag",
-  "argv": ["stellar", "contract", "invoke", "--id", "CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME", "--source", "ref-deployer", "--network", "testnet", "--not-a-real-flag", "--", "status"],
+  "argv": ["stellar", "contract", "invoke", "--id", "CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME", "--source", "derail-deployer", "--network", "testnet", "--not-a-real-flag", "--", "status"],
   "exit_code": 2,
   "started_at": "2026-08-16T23:42:23Z",
   "duration_ms": 52,

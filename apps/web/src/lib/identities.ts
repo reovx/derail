@@ -20,7 +20,7 @@ import { useCallback, useSyncExternalStore } from "react";
 const STORAGE_KEY = "derail.identities";
 
 export type DeployIdentity = {
-  /** The `stellar keys` name, e.g. `ref-deployer`. */
+  /** The `stellar keys` name, e.g. `derail-deployer`. */
   name: string;
   address: string;
   addedAt: string;

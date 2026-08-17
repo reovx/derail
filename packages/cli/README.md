@@ -87,7 +87,7 @@ derail -- stellar contract deploy --not-a-real-flag
 # exit 1, zero hashes — died at simulation, in under a second.
 derail -- stellar contract invoke \
   --id CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA \
-  --source ref-deployer --network testnet \
+  --source derail-deployer --network testnet \
   -- release --valid_through_ledger 1
 ```
 
@@ -100,7 +100,7 @@ Neither exists on any explorer.
 ```bash
 derail -- stellar contract deploy \
   --wasm spike/escrow/target/wasm32v1-none/release/escrow.wasm \
-  --source ref-deployer --network testnet
+  --source derail-deployer --network testnet
 ```
 
 Spends testnet XLM. The row appears within seconds as `Pending` with **two**
@@ -116,7 +116,7 @@ the transaction can only land after N, where it does not.
 ```bash
 CONTRACT=<the id printed by step 3>
 
-stellar contract invoke --id $CONTRACT --source ref-deployer \
+stellar contract invoke --id $CONTRACT --source derail-deployer \
   --network testnet -- initialize --amount 1000
 
 LEDGER=$(curl -s -X POST https://soroban-testnet.stellar.org \
@@ -125,7 +125,7 @@ LEDGER=$(curl -s -X POST https://soroban-testnet.stellar.org \
   | node -e "let s='';process.stdin.on('data',d=>s+=d).on('end',()=>console.log(JSON.parse(s).result.sequence))")
 
 derail -- stellar contract invoke --id $CONTRACT \
-  --source ref-deployer --network testnet \
+  --source derail-deployer --network testnet \
   -- release --valid_through_ledger $LEDGER
 ```
 

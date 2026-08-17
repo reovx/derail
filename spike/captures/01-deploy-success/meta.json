@@ -1,6 +1,6 @@
 {
   "slug": "01-deploy-success",
-  "argv": ["stellar", "contract", "deploy", "--wasm", "escrow/target/wasm32v1-none/release/escrow.wasm", "--source", "ref-deployer", "--network", "testnet", "--", "--admin", "ref-deployer", "--beneficiary", "ref-successor", "--deadline", "99999999999"],
+  "argv": ["stellar", "contract", "deploy", "--wasm", "escrow/target/wasm32v1-none/release/escrow.wasm", "--source", "derail-deployer", "--network", "testnet", "--", "--admin", "derail-deployer", "--beneficiary", "derail-approver", "--deadline", "99999999999"],
   "exit_code": 0,
   "started_at": "2026-08-16T23:40:14Z",
   "duration_ms": 16279,

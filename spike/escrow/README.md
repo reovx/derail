@@ -40,9 +40,9 @@ stellar contract build
 ```bash
 stellar contract deploy \
   --wasm target/wasm32v1-none/release/escrow.wasm \
-  --source ref-deployer --network testnet
+  --source derail-deployer --network testnet
 
-stellar contract invoke --id <ID> --source ref-deployer --network testnet \
+stellar contract invoke --id <ID> --source derail-deployer --network testnet \
   -- initialize \
      --admin <ADMIN_G...> \
      --beneficiary <BENEFICIARY_G...> \
@@ -57,7 +57,7 @@ LEDGER=$(curl -s -X POST https://soroban-testnet.stellar.org \
   -d '{"jsonrpc":"2.0","id":1,"method":"getLatestLedger"}' \
   | grep -o '"sequence":[0-9]*' | grep -o '[0-9]*')
 
-stellar contract invoke --id <ID> --source ref-successor --network testnet \
+stellar contract invoke --id <ID> --source derail-approver --network testnet \
   -- release --valid_through_ledger $LEDGER
 ```
 

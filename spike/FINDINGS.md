@@ -168,7 +168,7 @@ LEDGER=$(curl -s -X POST https://soroban-testnet.stellar.org \
   -d '{"jsonrpc":"2.0","id":1,"method":"getLatestLedger"}' \
   | grep -o '"sequence":[0-9]*' | grep -o '[0-9]*')
 
-stellar contract invoke --id <ID> --source ref-successor --network testnet \
+stellar contract invoke --id <ID> --source derail-approver --network testnet \
   -- release --valid_through_ledger $LEDGER
 ```
 
