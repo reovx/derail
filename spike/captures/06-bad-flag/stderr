@@ -1,0 +1,7 @@
+error: unexpected argument '--not-a-real-flag' found
+
+  tip: to pass '--not-a-real-flag' as a value, use '-- --not-a-real-flag'
+
+Usage: stellar.exe contract invoke --id <CONTRACT_ID> --source-account <SOURCE_ACCOUNT> --network <NETWORK> [-- <CONTRACT_FN_AND_ARGS>...]
+
+For more information, try '--help'.

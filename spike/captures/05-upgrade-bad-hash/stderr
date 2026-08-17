@@ -1,0 +1,7 @@
+❌ error: transaction simulation failed: HostError: Error(Storage, MissingValue)
+
+Event log (newest first):
+   0: [Diagnostic Event] contract:CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME, topics:[error, Error(Storage, MissingValue)], data:"escalating error to VM trap from failed host function call: update_current_contract_wasm"
+   1: [Diagnostic Event] contract:CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME, topics:[error, Error(Storage, MissingValue)], data:["Wasm does not exist", Bytes(1111111111111111111111111111111111111111111111111111111111111111)]
+   2: [Diagnostic Event] topics:[fn_call, CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME, upgrade], data:Bytes(1111111111111111111111111111111111111111111111111111111111111111)
+

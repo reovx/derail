@@ -1,0 +1,20 @@
+ℹ️  Simulating transaction…
+ℹ️  Signing transaction: 0f047f1282f32969564e6b9d1d4df6558b93ff1fc73a3519a85457f552c27520
+🌎 Sending transaction…
+❌ error: transaction submission failed: Some(
+    TransactionResult {
+        fee_charged: 6304,
+        result: TxFailed(
+            VecM(
+                [
+                    OpInner(
+                        InvokeHostFunction(
+                            Trapped,
+                        ),
+                    ),
+                ],
+            ),
+        ),
+        ext: V0,
+    },
+)

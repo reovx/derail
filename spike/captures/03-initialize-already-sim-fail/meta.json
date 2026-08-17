@@ -1,0 +1,14 @@
+{
+  "slug": "03-initialize-already-sim-fail",
+  "argv": ["stellar", "contract", "invoke", "--id", "CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME", "--source", "ref-deployer", "--network", "testnet", "--", "initialize", "--admin", "GC5N7WGWHHZEJ2PEIYAREWKGNQSWR3CME2HXBXKOJ65F3MPL27R774JZ", "--beneficiary", "GCWSAJE6UCKX2IZUTNOW7ARKD4BYFLR6B2NMS46UVMMX6RUL2C3XWK53", "--deadline", "99999999999"],
+  "exit_code": 1,
+  "started_at": "2026-08-16T23:41:22Z",
+  "duration_ms": 915,
+  "git": {
+    "commit_sha": "339397d316a310e78c8f1f2d771523872cb5493c",
+    "branch": "main",
+    "remote": "git@github.com-reovx:reovx/derail.git",
+    "dirty": true
+  },
+  "stellar_cli_version": "stellar 27.1.0 (8e402ea28202950b272fbabc34caad4d2f64fe87)"
+}

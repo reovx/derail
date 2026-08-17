@@ -1,0 +1,6 @@
+❌ error: transaction simulation failed: HostError: Error(Contract, #1)
+
+Event log (newest first):
+   0: [Diagnostic Event] contract:CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME, topics:[error, Error(Contract, #1)], data:"escalating Ok(ScErrorType::Contract) frame-exit to Err"
+   1: [Diagnostic Event] topics:[fn_call, CC47KNRV3G4Y5ZYPRTS5YH6Q33AG6OJJ4MY3575NDDPNK2BOOQP2MZME, initialize], data:[GC5N7WGWHHZEJ2PEIYAREWKGNQSWR3CME2HXBXKOJ65F3MPL27R774JZ, GCWSAJE6UCKX2IZUTNOW7ARKD4BYFLR6B2NMS46UVMMX6RUL2C3XWK53, 99999999999]
+

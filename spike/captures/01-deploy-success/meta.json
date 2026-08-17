@@ -1,0 +1,14 @@
+{
+  "slug": "01-deploy-success",
+  "argv": ["stellar", "contract", "deploy", "--wasm", "escrow/target/wasm32v1-none/release/escrow.wasm", "--source", "ref-deployer", "--network", "testnet", "--", "--admin", "ref-deployer", "--beneficiary", "ref-successor", "--deadline", "99999999999"],
+  "exit_code": 0,
+  "started_at": "2026-08-16T23:40:14Z",
+  "duration_ms": 16279,
+  "git": {
+    "commit_sha": "339397d316a310e78c8f1f2d771523872cb5493c",
+    "branch": "main",
+    "remote": "git@github.com-reovx:reovx/derail.git",
+    "dirty": true
+  },
+  "stellar_cli_version": "stellar 27.1.0 (8e402ea28202950b272fbabc34caad4d2f64fe87)"
+}
