@@ -18,3 +18,12 @@ next-env.d.ts
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+
+.mcp.json
+
+# Working notes. Kept on disk, out of the repo.
+docs/
+
+# Rewritten by `next dev` on every run.
+apps/web/AGENTS.md
+apps/web/CLAUDE.md

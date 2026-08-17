@@ -9,7 +9,6 @@ Rust workspace for Derail's on-chain components.
 
 Built against **soroban-sdk 27** and **stellar CLI 27.1.0**, targeting `wasm32v1-none`.
 
-Specified in [`../docs/specs/SPEC-BELT-LEVELS.md`](../docs/specs/SPEC-BELT-LEVELS.md) §2.
 
 ## Why the gate is on-chain
 

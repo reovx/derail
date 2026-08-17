@@ -1,6 +1,6 @@
 # CLI Output Spike — Findings
 
-Days 1–2 of Week 1, per DECISIONS.md. Goal: pin the `stellar` CLI's output format
+The first work on the project, before any product code. Goal: pin the `stellar` CLI's output format
 and prove that a deploy can fail *on-chain after passing simulation*, because the
 entire Derail pitch rests on that state being real and recordable.
 
@@ -8,8 +8,8 @@ Sample app: `spike/escrow` — a small escrow contract with one deliberately
 fallible entry point per failure class. All runs are against testnet, captured
 verbatim in `spike/captures/`.
 
-**Result: the premise holds, but two things in DECISIONS.md are wrong.** Details
-in [Corrections](#corrections-to-decisionsmd).
+**Result: the premise holds, but two things we had assumed going in are wrong.**
+Details in [Corrections](#corrections-to-the-original-plan).
 
 ---
 
@@ -177,11 +177,11 @@ contract, but it is timing-dependent. Use the ledger guard for the demo.
 
 ---
 
-## Corrections to DECISIONS.md
+## Corrections to the original plan
 
 ### 1. The scripted demo failure does not work
 
-DECISIONS.md, demo scenario step 3:
+The demo scenario we had planned, step 3:
 
 > ```
 > derail -- stellar contract upgrade --new_wasm_hash <wrong_hash>
@@ -212,8 +212,8 @@ stronger one.
 1. `4211f383…` — upload wasm
 2. `cf366562…` — create contract
 
-DECISIONS.md's ingest design says "attach tx" (singular) and the deliverables
-list implies one `command_runs` row maps to one `chain_transactions` row. It does
+The original ingest design said "attach tx" (singular), implying that one
+`command_runs` row maps to one `chain_transactions` row. It does
 not. The relationship is **1:N**, and either transaction can fail independently —
 an upload can succeed while the create fails, leaving a paid-for wasm and no
 contract.

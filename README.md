@@ -15,19 +15,15 @@ simulation result, and the on-chain outcome, on one screen.
 
 ## Status
 
-Early. The specs and the CLI spike are complete; the product is being built against
-them level by level.
+Early, and being built in vertical slices rather than breadth-first.
 
 | Piece | State |
 |---|---|
 | CLI output spike, measured against testnet | Done — [`spike/FINDINGS.md`](./spike/FINDINGS.md) |
-| Specs and positioning | Done — [`docs/specs/`](./docs/specs/) |
 | Web app: wallet connect, balance, top up a deploy identity | Done |
 | Ingest API, CLI wrapper, poller, run timeline | Done — the full spine, verified end to end |
 | `derail_gate` approval contract and the gated target template | Written and tested; **not yet deployed to testnet** |
 | GitHub OAuth and multi-user accounts | Not started — the app is currently single-project |
-
-Requirement trackers per belt level: [`docs/checklists/`](./docs/checklists/).
 
 ---
 
@@ -82,8 +78,6 @@ packages/cli       the `derail` wrapper
 supabase           schema migrations and the poller Edge Function
 contracts          derail_gate and the gated_target starter template
 scripts            project and token seeding
-docs/specs         what we are building and why
-docs/checklists    belt-level requirement trackers
 spike              CLI output measurements the wrapper design rests on
 ```
 
@@ -94,7 +88,7 @@ The wrapper parses human-readable CLI output, so the version is part of the cont
 | Component | Version |
 |---|---|
 | `stellar` CLI | 27.1.0 |
-| `soroban-sdk` | 27.0.6 |
+| `soroban-sdk` | 27.0.4 |
 | `rustc` | 1.97.1 |
 
 A different CLI version invalidates the output-format findings in
