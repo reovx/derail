@@ -137,7 +137,7 @@ async function main(): Promise<void> {
 
   if (config) {
     await spawnReport;
-    await report(config, {
+    const recorded = await report(config, {
       ...identity,
       status,
       simulation_ok,
@@ -148,6 +148,17 @@ async function main(): Promise<void> {
       stderr_excerpt: capExcerpt(stderr, EXCERPT_LIMIT),
       tx_hashes: txHashes,
     });
+
+    // One line, only when the record was actually lost.
+    //
+    // "Fail silently" was meant to keep a backend outage from interfering with a
+    // deploy, and it still does — the exit code and both streams are untouched.
+    // But staying *entirely* quiet means the timeline grows holes the user does
+    // not know about, and a record trusted while incomplete is the failure mode
+    // this product exists to prevent. Knowing beats not knowing.
+    if (!recorded) {
+      process.stderr.write("derail: this run was not recorded (DERAIL_DEBUG=1 for why)\n");
+    }
   }
 
   // Always the child's code. Everything above this line is bookkeeping and

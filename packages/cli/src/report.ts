@@ -7,8 +7,21 @@
  * nobody keeps in front of their commands.
  */
 
-const DEFAULT_URL = "https://derail.vercel.app";
-const TIMEOUT_MS = 2000;
+const DEFAULT_URL = "https://derail-tau.vercel.app";
+
+/**
+ * The original budget was 2 seconds, on the principle that the wrapper must
+ * never make a deploy slower. Measured against the real deployment, a round
+ * trip takes 1.4–2.2s, so that budget dropped records at random — and a history
+ * with silent holes is worse than no history, because it gets trusted.
+ *
+ * 5 seconds resolves the conflict rather than splitting it. The spawn call is
+ * never awaited, so it still costs the deploy nothing; the completion call
+ * happens *after* the child has already exited, so the only thing it can delay
+ * is the shell prompt coming back. Paying that to keep the record whole is the
+ * right trade, and it is a smaller cost than the rule was written to prevent.
+ */
+const TIMEOUT_MS = 5000;
 
 export type ReportConfig = {
   url: string;

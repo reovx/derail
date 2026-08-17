@@ -2,6 +2,8 @@
 
 **Deploy observability for Soroban.**
 
+**Live:** <https://derail-tau.vercel.app> · testnet
+
 > Explorers and attestations tell you about contracts that exist. Derail tells you
 > about deploys that happened — including the ones that never produced a contract.
 
@@ -24,6 +26,24 @@ Early, and being built in vertical slices rather than breadth-first.
 | Ingest API, CLI wrapper, poller, run timeline | Done — the full spine, verified end to end |
 | `derail_gate` approval contract and the gated target template | Written and tested; **not yet deployed to testnet** |
 | GitHub OAuth and multi-user accounts | Not started — the app is currently single-project |
+
+---
+
+## Verify it
+
+Everything below is on the public testnet ledger, not a screenshot.
+
+| | |
+|---|---|
+| Live app | <https://derail-tau.vercel.app> |
+| Network | Stellar testnet |
+| Deploy identity | [`GC5N7WGW…774JZ`](https://stellar.expert/explorer/testnet/account/GC5N7WGWHHZEJ2PEIYAREWKGNQSWR3CME2HXBXKOJ65F3MPL27R774JZ) |
+| A recorded deploy | [`3c23eee4…`](https://stellar.expert/explorer/testnet/tx/3c23eee4821aaa46550511bc3a07f9c65a3b7b2fbbc0436f04ed96caac093ad8) — ledger 4,187,234 |
+| **A deploy that passed simulation and failed on-chain** | [`0f047f12…`](https://stellar.expert/explorer/testnet/tx/0f047f1282f32969564e6b9d1d4df6558b93ff1fc73a3519a85457f552c27520) — ledger 4,180,380 |
+
+That last row is the product. The explorer will tell you the transaction failed. It
+will not tell you that simulation predicted success, which commit it came from, or
+that the working tree was dirty at the time. Derail records all three.
 
 ---
 
