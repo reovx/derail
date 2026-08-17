@@ -1,0 +1,84 @@
+@import "tailwindcss";
+
+/* Design tokens — SPEC-DESIGN-LANGUAGE.md §22.
+   The product UI is dark-first and flat: borders over shadows, gradients
+   reserved for marketing surfaces. */
+:root {
+  --derail-red: #e63946;
+  --derail-red-light: #ff4d4f;
+  --derail-red-dark: #b71c1c;
+
+  --derail-black: #0d1117;
+  --derail-navy: #1b2330;
+  --derail-gray: #6b7280;
+  --derail-light: #e5e7eb;
+  --derail-white: #ffffff;
+
+  /* Surfaces — §9.1 dark */
+  --background: var(--derail-black);
+  --surface: var(--derail-navy);
+  --surface-elevated: #202a38;
+  --border: #303846;
+
+  --foreground: var(--derail-white);
+  --muted: var(--derail-gray);
+  --secondary: var(--derail-light);
+
+  /* Status — §11. Red is reserved for failure and brand, nothing else. */
+  --status-success: #22c55e;
+  --status-warning: #f59e0b;
+  --status-failure: var(--derail-red);
+  --status-running: #3b82f6;
+  --status-neutral: var(--derail-gray);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-surface: var(--surface);
+  --color-elevated: var(--surface-elevated);
+  --color-border: var(--border);
+  --color-foreground: var(--foreground);
+  --color-muted: var(--muted);
+  --color-secondary: var(--secondary);
+
+  --color-red: var(--derail-red);
+  --color-red-light: var(--derail-red-light);
+  --color-red-dark: var(--derail-red-dark);
+
+  --color-success: var(--status-success);
+  --color-warning: var(--status-warning);
+  --color-failure: var(--status-failure);
+  --color-running: var(--status-running);
+  --color-neutral: var(--status-neutral);
+
+  --font-sans: var(--font-geist-sans);
+  --font-mono: var(--font-geist-mono);
+
+  /* §10 — consistent radius system, pills only for status and metadata. */
+  --radius-sm: 6px;
+  --radius-md: 8px;
+  --radius-lg: 12px;
+  --radius-xl: 16px;
+}
+
+* {
+  border-color: var(--border);
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-geist-sans), system-ui, sans-serif;
+}
+
+::selection {
+  background: var(--derail-red);
+  color: var(--derail-white);
+}
+
+/* Focus is a single consistent ring — the UI is dense, so it has to be
+   unmistakable without adding decoration. */
+:focus-visible {
+  outline: 2px solid var(--derail-red);
+  outline-offset: 2px;
+}
