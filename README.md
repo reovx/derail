@@ -22,9 +22,10 @@ them level by level.
 |---|---|
 | CLI output spike, measured against testnet | Done — [`spike/FINDINGS.md`](./spike/FINDINGS.md) |
 | Specs and positioning | Done — [`docs/specs/`](./docs/specs/) |
-| Web app: wallet connect, balance, top up a deploy identity | **In progress** |
-| Ingest API, CLI wrapper, poller, run timeline | Not started |
-| `derail_gate` approval contract | Not started |
+| Web app: wallet connect, balance, top up a deploy identity | Done |
+| Ingest API, CLI wrapper, poller, run timeline | Done — the full spine, verified end to end |
+| `derail_gate` approval contract and the gated target template | Written and tested; **not yet deployed to testnet** |
+| GitHub OAuth and multi-user accounts | Not started — the app is currently single-project |
 
 Requirement trackers per belt level: [`docs/checklists/`](./docs/checklists/).
 
@@ -32,7 +33,20 @@ Requirement trackers per belt level: [`docs/checklists/`](./docs/checklists/).
 
 ## What runs today
 
-The Next.js app in [`apps/web`](./apps/web) covers the Level 1 wallet path:
+**The spine, end to end.** Put `derail --` in front of a `stellar` command and the
+attempt is recorded whether or not it produces a contract; a poller resolves the
+transactions against the chain a minute later, unattended; the timeline renders
+command through outcome, including the stages that never happened. See
+[`packages/cli/README.md`](./packages/cli/README.md) for a workflow that produces
+one run of every outcome class.
+
+**The upgrade gate.** [`contracts/derail_gate`](./contracts/derail_gate) turns the
+record into a control point: an upgrade cannot land until N approvers have signed
+for it, enforced by the contract rather than by policy. Approvals are individual
+on-chain transactions, so a proposal that was *stopped* leaves as permanent a
+trace as one that shipped. Not yet deployed to testnet.
+
+**The wallet path**, in [`apps/web`](./apps/web):
 
 - **Connect and disconnect** a Freighter wallet, with the session surviving a refresh
 - **XLM balance**, separating a funded account from one that has never existed —
@@ -63,11 +77,14 @@ wallet can fund itself from the balance panel via Friendbot.
 ## Layout
 
 ```
-apps/web           Next.js app — wallet, balances, transactions
-docs/specs         What we are building and why
-docs/checklists    Belt-level requirement trackers
+apps/web           Next.js app — run list, timeline, ingest API, wallet
+packages/cli       the `derail` wrapper
+supabase           schema migrations and the poller Edge Function
+contracts          derail_gate, the gated_target template, and one reference contract
+scripts            project and token seeding
+docs/specs         what we are building and why
+docs/checklists    belt-level requirement trackers
 spike              CLI output measurements the wrapper design rests on
-contracts          another project's milestone_proof — reference only, not part of Derail
 ```
 
 ## Pinned versions
