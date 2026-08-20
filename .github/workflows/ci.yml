@@ -1,0 +1,97 @@
+name: CI
+
+# Two independent halves — the contracts are a Cargo workspace under
+# `contracts/`, the app and wrapper are npm workspaces at the root. They share
+# no toolchain, so they run as separate jobs and a Rust failure never hides a
+# frontend one.
+#
+# `SPEC-BELT-LEVELS.md` §4 (L3) names the exact commands: cargo test, clippy
+# with warnings denied, fmt --check, the wasm build, and the frontend suite.
+# `DECISIONS.md` cut GitHub Actions from MVP 1 on the grounds that traceability
+# was covered by local git; that reasoning was about *ingestion*, not about CI
+# as a build gate, so the cut stands for the product feature and this exists
+# anyway.
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+# A second push to the same branch makes the first run's result irrelevant.
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+
+jobs:
+  contracts:
+    name: Contracts
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: contracts
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # `contracts/rust-toolchain.toml` pins the channel, components and the
+      # wasm target, so the toolchain is not restated here. Restating it is how
+      # CI and a developer's machine end up building different things.
+      - name: Show toolchain
+        run: |
+          rustc --version
+          cargo --version
+          rustup target list --installed
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: contracts
+
+      - name: Format
+        run: cargo fmt --all -- --check
+
+      - name: Clippy
+        run: cargo clippy --all-targets -- -D warnings
+
+      - name: Test
+        run: cargo test --workspace
+
+      # The wasm build is the artifact that actually ships. A contract that
+      # tests green on the host and will not build for wasm32v1-none is broken,
+      # and only this step notices.
+      - name: Build wasm
+        run: cargo build --target wasm32v1-none --release
+
+  web:
+    name: App and wrapper
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v5
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Lint
+        run: npm run lint
+
+      - name: Test
+        run: npm test
+
+      # The Next build needs the public network variable and nothing else —
+      # every server-side secret is read at request time, so a build without
+      # them is a real check rather than a stub.
+      - name: Build
+        run: npm run build
+        env:
+          NEXT_PUBLIC_STELLAR_NETWORK: testnet
