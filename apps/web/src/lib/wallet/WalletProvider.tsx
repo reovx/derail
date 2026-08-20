@@ -11,7 +11,7 @@ import {
 } from "react";
 
 import { NETWORK } from "@/lib/stellar/config";
-import { freighter } from "./freighter";
+import { walletsKit } from "./kit";
 import { WalletAdapter, WalletError, WalletNetwork } from "./types";
 
 const SESSION_KEY = "derail.wallet";
@@ -28,14 +28,18 @@ type WalletContextValue = {
   connecting: boolean;
   adapter: WalletAdapter;
   connect: () => Promise<void>;
-  disconnect: () => void;
+  disconnect: () => Promise<void>;
   clearError: () => void;
 };
 
 const WalletContext = createContext<WalletContextValue | null>(null);
 
 export function WalletProvider({ children }: { children: React.ReactNode }) {
-  const adapter = freighter;
+  // One line, because everything here is written against `WalletAdapter`
+  // rather than against a wallet. `SPEC-BELT-LEVELS.md` §4 (L2) asks for
+  // StellarWalletsKit; the previous Freighter adapter still satisfies the
+  // interface and stays in the tree as the reference implementation.
+  const adapter = walletsKit;
 
   const [status, setStatus] = useState<WalletStatus>("initializing");
   const [address, setAddress] = useState<string | null>(null);
@@ -91,7 +95,7 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     void restore();
   }, [restore]);
 
-  // Freighter can switch account or network behind the app's back. Re-reading
+  // A wallet can switch account or network behind the app's back. Re-reading
   // on focus is cheap and covers the case without a polling loop.
   useEffect(() => {
     if (status !== "connected") return;
@@ -133,15 +137,17 @@ export function WalletProvider({ children }: { children: React.ReactNode }) {
     }
   }, [adapter, readNetwork]);
 
-  const disconnect = useCallback(() => {
-    // Freighter exposes no revoke, so "disconnect" is the app forgetting the
-    // session. Say that in the UI rather than implying the grant is gone.
+  const disconnect = useCallback(async () => {
+    // The kit clears its own stored selection, so the next visit starts at the
+    // picker. The extension's grant still stands — no Stellar wallet exposes a
+    // revoke — and the UI says that rather than implying the grant is gone.
+    await adapter.disconnect?.();
     window.localStorage.removeItem(SESSION_KEY);
     setAddress(null);
     setNetwork(null);
     setError(null);
     setStatus("disconnected");
-  }, []);
+  }, [adapter]);
 
   const value = useMemo<WalletContextValue>(
     () => ({

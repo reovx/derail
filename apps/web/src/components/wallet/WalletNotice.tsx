@@ -28,20 +28,15 @@ export function WalletNotice() {
     return (
       <Notice
         tone="neutral"
-        title={`${adapter.name} was not detected`}
+        title="No Stellar wallet detected"
         action={
-          <a
-            href={adapter.installUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-8 items-center rounded-[6px] border border-border bg-elevated px-3 text-[13px] font-medium text-secondary transition-colors hover:text-foreground hover:border-muted"
-          >
-            Install {adapter.name}
-          </a>
+          <Button size="sm" onClick={connect}>
+            See wallet options
+          </Button>
         }
       >
-        Install the extension and reload this page. Derail never sees your keys — every transaction
-        is signed inside the wallet.
+        Derail never sees your keys — every transaction is signed inside the wallet. The picker
+        lists the wallets this app supports, each with an install link.
       </Notice>
     );
   }
@@ -52,19 +47,15 @@ export function WalletNotice() {
     return (
       <Notice
         tone="failure"
-        title={`${adapter.name} is not installed`}
+        title="That wallet is not installed"
         action={
-          <a
-            href={adapter.installUrl}
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex h-8 items-center rounded-[6px] border border-red bg-red px-3 text-[13px] font-medium text-white transition-colors hover:bg-red-light hover:border-red-light"
-          >
-            Install {adapter.name}
-          </a>
+          <Button size="sm" onClick={connect}>
+            Pick another
+          </Button>
         }
       >
-        This browser has no Stellar wallet extension available.
+        The wallet you chose is not available in this browser. The picker lists the rest, each
+        with an install link.
       </Notice>
     );
   }

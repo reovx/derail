@@ -12,6 +12,7 @@
     "test:watch": "vitest"
   },
   "dependencies": {
+    "@creit.tech/stellar-wallets-kit": "^2.5.0",
     "@stellar/freighter-api": "^6.0.1",
     "@stellar/stellar-sdk": "^16.2.0",
     "@supabase/supabase-js": "^2.112.3",

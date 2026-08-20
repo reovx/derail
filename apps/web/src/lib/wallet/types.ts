@@ -1,9 +1,11 @@
 /**
  * The wallet boundary.
  *
- * L1 talks to Freighter directly; `SPEC-BELT-LEVELS.md` §4 replaces it with
- * StellarWalletsKit at L2. Everything above this interface is written against
- * the interface, so that swap is a new adapter and nothing else.
+ * Every wallet reaches the app through this interface, so nothing above it has
+ * to know which wallet it is talking to. `SPEC-BELT-LEVELS.md` §4 called for
+ * replacing raw Freighter with StellarWalletsKit at L2, and the swap cost one
+ * new adapter and one line in the provider — which is the return on having
+ * drawn the boundary at L1.
  */
 
 export type WalletErrorKind =
@@ -54,4 +56,12 @@ export interface WalletAdapter {
 
   /** Returns the signed transaction envelope XDR. */
   signTransaction(xdr: string, opts: { networkPassphrase: string; address: string }): Promise<string>;
+
+  /**
+   * Optional, because not every wallet has one. Freighter exposes no revoke, so
+   * disconnecting there is only the app forgetting the session; StellarWalletsKit
+   * does clear its own selection, which is a real difference and worth honouring
+   * rather than flattening.
+   */
+  disconnect?(): Promise<void>;
 }

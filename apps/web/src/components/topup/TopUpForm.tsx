@@ -16,7 +16,7 @@ import {
   validateAmount,
   validateDestination,
 } from "@/lib/stellar/payment";
-import { freighter } from "@/lib/wallet/freighter";
+import { useWallet } from "@/lib/wallet/WalletProvider";
 import { TransactionResult } from "./TransactionResult";
 
 const PHASE_LABEL: Record<PaymentPhase, string> = {
@@ -35,6 +35,10 @@ export function TopUpForm({
   onSent: () => Promise<void>;
 }) {
   const { identities, remember } = useDeployIdentities();
+  // The wallet that is actually connected, not a hardcoded one. Signing with
+  // Freighter while the user connected through Lobstr would fail at the prompt,
+  // and only for the people who did not pick the default.
+  const { adapter } = useWallet();
 
   const [name, setName] = useState("");
   const [destination, setDestination] = useState("");
@@ -76,7 +80,7 @@ export function TopUpForm({
 
     const outcome = await sendPayment(
       { from, to: payload.destination, amount: payload.amount, memo },
-      freighter,
+      adapter,
       setPhase,
     );
 

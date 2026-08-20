@@ -5,7 +5,7 @@ import { truncateAddress } from "@/components/ui/Address";
 import { useWallet } from "@/lib/wallet/WalletProvider";
 
 export function ConnectButton() {
-  const { status, address, connecting, connect, disconnect, adapter } = useWallet();
+  const { status, address, connecting, connect, disconnect } = useWallet();
 
   if (status === "initializing") {
     return (
@@ -15,16 +15,14 @@ export function ConnectButton() {
     );
   }
 
+  // No wallet detected, but the picker still opens — it lists every supported
+  // wallet with an install link, which is a better answer for someone who has
+  // none than a button pointing at whichever one we happened to hardcode.
   if (status === "unavailable") {
     return (
-      <a
-        href={adapter.installUrl}
-        target="_blank"
-        rel="noreferrer"
-        className="inline-flex h-8 items-center gap-2 rounded-[6px] border border-red bg-red px-3 text-[13px] font-medium text-white transition-colors hover:bg-red-light hover:border-red-light"
-      >
-        Install {adapter.name}
-      </a>
+      <Button size="sm" variant="primary" loading={connecting} onClick={connect}>
+        {connecting ? "Waiting for wallet…" : "Choose a wallet"}
+      </Button>
     );
   }
 
