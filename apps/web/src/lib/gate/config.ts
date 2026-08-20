@@ -17,13 +17,19 @@ export const TARGET_ID = process.env.NEXT_PUBLIC_DERAIL_TARGET_ID ?? null;
 export const gateConfigured = Boolean(GATE_ID && TARGET_ID);
 
 /**
- * How far back the review screen looks for events.
+ * How far back the review screen looks for events. Roughly three hours, at
+ * testnet's five-second ledgers.
  *
- * Soroban RPC keeps roughly seven days of them — the live instance reported an
- * `oldestLedger` about 120,000 ledgers behind `latestLedger`. Asking for
- * anything older is an error rather than an empty page, so the floor is clamped
- * against what the server admits to holding, and proposals are enumerated from
- * contract storage instead. Events tell you *what just happened*; storage tells
- * you *what is true*, and the two are not interchangeable.
+ * It is this small for a measured reason. Public testnet RPC retains about
+ * seven days of events — `oldestLedger` sits some 120,000 ledgers behind
+ * `latestLedger` — but it will not *scan* that far in reasonable time. A
+ * 1,000-ledger window answers instantly; 5,000 takes long enough to hang a
+ * page, and 100,000 returns nothing at all rather than an error, which is the
+ * worst of the three because it looks like an empty feed.
+ *
+ * This costs nothing that matters, because events are not the source of truth
+ * here. Every proposal is enumerated from contract storage, which has no window
+ * at all. Events say *what just happened*; storage says *what is true*, and
+ * only one of those two can be allowed to go quiet.
  */
-export const EVENT_LOOKBACK_LEDGERS = 100_000;
+export const EVENT_LOOKBACK_LEDGERS = 2_000;
