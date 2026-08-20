@@ -78,8 +78,16 @@ impl GatedTarget {
 
     // --- Everything below is example payload, safe to replace. ---
 
+    /// Bumped from 1 to 2 so an upgrade has something to prove.
+    ///
+    /// This number is the visible half of `SPEC-BELT-LEVELS.md` §4 (L3): the
+    /// live target answered 1, the gate executed a proposal carrying this
+    /// build's hash, and it answers 2 — with no admin key anywhere in the path,
+    /// because the target has none. The commit that changed this line is the
+    /// change the approvers signed for, which is the whole thesis of the
+    /// product in one diff.
     pub fn version(_env: Env) -> u32 {
-        1
+        2
     }
 
     pub fn set_message(env: Env, message: String) {
