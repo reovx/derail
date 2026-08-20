@@ -531,7 +531,8 @@ impl DerailGate {
     /// upgrade.
     fn check_approver_set(approvers: &Vec<Address>, threshold: u32) -> Result<(), Error> {
         let size = approvers.len();
-        if size < 2 || size > MAX_APPROVERS {
+        // Two is the floor because a single approver is not a review gate.
+        if !(2..=MAX_APPROVERS).contains(&size) {
             return Err(Error::InvalidApprovers);
         }
 
