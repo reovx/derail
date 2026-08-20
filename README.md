@@ -132,9 +132,8 @@ Keys never reach the app. Transactions are built here and signed inside the wall
 ## Running it
 
 ```bash
-npm install
-npm run build --workspace gate-client   # generated contract bindings
-npm run dev                             # http://localhost:3000
+npm install     # also builds the generated contract bindings
+npm run dev     # http://localhost:3000
 ```
 
 Copy [`apps/web/.env.example`](./apps/web/.env.example) to `apps/web/.env.local` and

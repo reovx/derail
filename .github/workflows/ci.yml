@@ -79,6 +79,13 @@ jobs:
 
       - run: npm ci
 
+      # `gate-client` resolves to its compiled `dist`, which is generated rather
+      # than committed. Its `prepare` script builds it during `npm ci`, and this
+      # step is here so that a failure to do so says which package broke instead
+      # of surfacing as "Cannot find module 'gate-client'" three steps later.
+      - name: Build contract bindings
+        run: npm run build --workspace gate-client
+
       - name: Typecheck
         run: npm run typecheck
 
