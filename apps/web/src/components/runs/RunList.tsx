@@ -1,7 +1,7 @@
 import Link from "next/link";
 
 import { Pill } from "@/components/ui/Pill";
-import type { RunSummary } from "@/lib/runs/queries";
+import type { RunSummary } from "@/lib/runs/types";
 import {
   formatDuration,
   formatRelativeTime,

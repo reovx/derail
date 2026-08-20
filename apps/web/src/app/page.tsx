@@ -1,9 +1,8 @@
 import Link from "next/link";
 
-import { RunList } from "@/components/runs/RunList";
-import { Tally } from "@/components/runs/Tally";
+import { LiveRuns } from "@/components/runs/LiveRuns";
 import { Notice } from "@/components/ui/Notice";
-import { listRuns, ProjectNotConfiguredError, tallyRuns } from "@/lib/runs/queries";
+import { listRuns, ProjectNotConfiguredError } from "@/lib/runs/queries";
 
 /** Every visit reads the current state of the timeline; nothing here is cacheable. */
 export const dynamic = "force-dynamic";
@@ -49,8 +48,7 @@ export default async function Deployments() {
           </p>
         </header>
 
-        <Tally counts={tallyRuns(runs)} />
-        <RunList runs={runs} />
+        <LiveRuns initialRuns={runs} projectId={process.env.DERAIL_PROJECT_ID ?? null} />
 
         <p className="text-[12px] leading-5 text-muted">
           Records arrive from the{" "}

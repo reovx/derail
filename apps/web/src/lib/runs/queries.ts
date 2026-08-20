@@ -1,7 +1,7 @@
 import "server-only";
 
 import { supabaseAdmin } from "@/lib/supabase/admin";
-import type { Tables } from "@/lib/supabase/types.generated";
+import type { RunDetail, RunSummary } from "./types";
 
 /**
  * Reads for the run list and the detail page.
@@ -12,17 +12,6 @@ import type { Tables } from "@/lib/supabase/types.generated";
  * When auth lands these become session-scoped queries and RLS does the
  * filtering — the policies are already in place for it.
  */
-
-export type CommandRun = Tables<"command_runs">;
-export type ChainTransaction = Tables<"chain_transactions">;
-
-export type RunSummary = CommandRun & {
-  transactionCount: number;
-};
-
-export type RunDetail = CommandRun & {
-  transactions: ChainTransaction[];
-};
 
 export class ProjectNotConfiguredError extends Error {
   constructor() {
@@ -92,26 +81,4 @@ export async function getRun(id: string): Promise<RunDetail | null> {
   if (txError) throw new Error(txError.message);
 
   return { ...run, transactions: transactions ?? [] };
-}
-
-/**
- * §8.1 — the four-cell tally above the list. This taxonomy is the product's
- * argument, so it belongs above the fold: two of these four classes leave no
- * trace anywhere else.
- */
-export type Tally = {
-  confirmed: number;
-  chain_failed: number;
-  sim_failed: number;
-  not_submitted: number;
-};
-
-export function tallyRuns(runs: RunSummary[]): Tally {
-  const tally: Tally = { confirmed: 0, chain_failed: 0, sim_failed: 0, not_submitted: 0 };
-
-  for (const run of runs) {
-    if (run.status in tally) tally[run.status as keyof Tally] += 1;
-  }
-
-  return tally;
 }

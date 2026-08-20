@@ -1,7 +1,7 @@
 import { CopyButton, ExternalIcon } from "@/components/ui/Address";
 import { Pill } from "@/components/ui/Pill";
 import { explorerTxUrl } from "@/lib/stellar/config";
-import type { ChainTransaction, RunDetail } from "@/lib/runs/queries";
+import type { ChainTransaction, RunDetail } from "@/lib/runs/types";
 import { Tone, txStatus } from "@/lib/runs/presentation";
 
 /**

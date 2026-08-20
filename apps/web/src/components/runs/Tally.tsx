@@ -1,4 +1,4 @@
-import type { Tally as TallyCounts } from "@/lib/runs/queries";
+import type { Tally as TallyCounts } from "@/lib/runs/types";
 import { runStatus } from "@/lib/runs/presentation";
 
 const CELLS = [
