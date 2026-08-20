@@ -1,0 +1,27 @@
+{
+  "version": "0.1.0",
+  "name": "gate-client",
+  "type": "module",
+  "exports": "./dist/index.js",
+  "typings": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "devDependencies": {
+    "@stellar/stellar-sdk": "^16.2.0",
+    "buffer": "6.0.3",
+    "typescript": "^5"
+  },
+  "private": true,
+  "description": "Generated TypeScript bindings for the deployed derail_gate contract.",
+  "files": [
+    "dist"
+  ],
+  "peerDependencies": {
+    "@stellar/stellar-sdk": "^16.2.0"
+  },
+  "dependencies": {
+    "buffer": "6.0.3"
+  }
+}

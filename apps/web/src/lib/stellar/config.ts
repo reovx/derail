@@ -14,6 +14,8 @@ type NetworkConfig = {
   label: string;
   passphrase: string;
   horizonUrl: string;
+  /** Soroban RPC. A different service from Horizon, on a different host. */
+  sorobanRpcUrl: string;
   explorerBase: string;
   /** Friendbot only exists on testnet. */
   friendbotUrl: string | null;
@@ -25,6 +27,7 @@ const NETWORKS: Record<NetworkId, NetworkConfig> = {
     label: "Testnet",
     passphrase: Networks.TESTNET,
     horizonUrl: "https://horizon-testnet.stellar.org",
+    sorobanRpcUrl: "https://soroban-testnet.stellar.org",
     explorerBase: "https://stellar.expert/explorer/testnet",
     friendbotUrl: "https://friendbot.stellar.org",
   },
@@ -33,6 +36,7 @@ const NETWORKS: Record<NetworkId, NetworkConfig> = {
     label: "Mainnet",
     passphrase: Networks.PUBLIC,
     horizonUrl: "https://horizon.stellar.org",
+    sorobanRpcUrl: "https://mainnet.sorobanrpc.com",
     explorerBase: "https://stellar.expert/explorer/public",
     friendbotUrl: null,
   },
@@ -47,6 +51,9 @@ export const explorerTxUrl = (hash: string) => `${NETWORK.explorerBase}/tx/${has
 
 export const explorerAccountUrl = (address: string) =>
   `${NETWORK.explorerBase}/account/${address}`;
+
+export const explorerContractUrl = (contractId: string) =>
+  `${NETWORK.explorerBase}/contract/${contractId}`;
 
 /**
  * Base fee in stroops. 100 is the network minimum; we pay 10x so a top-up
