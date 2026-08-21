@@ -1,19 +1,31 @@
 import { ButtonHTMLAttributes, forwardRef } from "react";
 
-type Variant = "primary" | "secondary" | "ghost";
+type Variant = "primary" | "secondary" | "destructive" | "ghost";
 type Size = "sm" | "md";
 
+/**
+ * §21.05, as revised.
+ *
+ * Red is reserved for failure and the wordmark. It is deliberately *not* the
+ * primary action: a gate whose "approve" button is failure-red and whose
+ * "reject" button is neutral grey inverts the one colour rule the brand has.
+ * The primary action is instead the highest-contrast thing on the surface,
+ * which is also what makes it findable in two seconds.
+ */
 const VARIANTS: Record<Variant, string> = {
   primary:
-    "bg-red text-white border border-red hover:bg-red-light hover:border-red-light disabled:hover:bg-red",
+    "bg-secondary text-background border border-secondary hover:bg-white hover:border-white disabled:hover:bg-secondary",
   secondary:
     "bg-elevated text-secondary border border-border hover:border-muted hover:text-foreground",
+  // Terminal and irreversible actions only.
+  destructive:
+    "bg-transparent text-red-light border border-red hover:bg-red hover:text-white",
   ghost: "bg-transparent text-muted border border-transparent hover:text-foreground",
 };
 
 const SIZES: Record<Size, string> = {
-  sm: "h-8 px-3 text-[13px] rounded-[6px]",
-  md: "h-10 px-4 text-sm rounded-[8px]",
+  sm: "h-8 px-3 text-small rounded-[6px]",
+  md: "h-10 px-4 text-body rounded-[8px]",
 };
 
 type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {

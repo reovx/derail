@@ -118,7 +118,7 @@ export function TopUpForm({
       <form onSubmit={submit} className="flex flex-col gap-4">
         {identities.length > 0 && (
           <div className="flex flex-col gap-2">
-            <span className="text-[12px] font-medium uppercase tracking-wider text-muted">
+            <span className="text-micro font-medium uppercase tracking-wider text-muted">
               Saved identities
             </span>
             <div className="flex flex-wrap gap-2">
@@ -131,14 +131,14 @@ export function TopUpForm({
                     setName(identity.name);
                     setDestinationError(null);
                   }}
-                  className={`inline-flex items-center gap-2 rounded-[6px] border px-2.5 py-1.5 text-[13px] transition-colors ${
+                  className={`inline-flex items-center gap-2 rounded-[6px] border px-2.5 py-1.5 text-small transition-colors ${
                     destination === identity.address
-                      ? "border-red text-foreground"
+                      ? "border-secondary text-foreground"
                       : "border-border bg-elevated text-secondary hover:border-muted"
                   }`}
                 >
                   <span className="font-medium">{identity.name}</span>
-                  <span className="font-mono text-[12px] text-muted">
+                  <span className="font-mono text-small text-muted">
                     {truncateAddress(identity.address, 4, 4)}
                   </span>
                 </button>
@@ -220,7 +220,7 @@ export function TopUpForm({
           <Button type="submit" variant="primary" loading={busy}>
             {busy ? "Sending…" : "Send XLM"}
           </Button>
-          {phase && <span className="text-[13px] text-muted">{PHASE_LABEL[phase]}</span>}
+          {phase && <span className="text-body text-muted">{PHASE_LABEL[phase]}</span>}
         </div>
       </form>
     </Card>

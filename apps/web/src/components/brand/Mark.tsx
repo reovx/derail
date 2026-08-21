@@ -60,10 +60,10 @@ export function Mark({
 /** Wordmark — uppercase, expanded tracking, with the red `A` of §8.1. */
 export function Wordmark({ className }: { className?: string }) {
   return (
-    <span className={className}>
-      <span className="tracking-[0.22em] font-semibold">DER</span>
-      <span className="tracking-[0.22em] font-semibold text-red">A</span>
-      <span className="tracking-[0.22em] font-semibold">IL</span>
+    <span className={`font-display ${className ?? ""}`}>
+      <span className="tracking-[0.22em] font-bold">DER</span>
+      <span className="tracking-[0.22em] font-bold text-red">A</span>
+      <span className="tracking-[0.22em] font-bold">IL</span>
     </span>
   );
 }

@@ -72,7 +72,7 @@ export function BalancePanel({
           {/* The 404 case, stated as information rather than as an error —
               a brand-new address has no ledger entry, which is not zero XLM. */}
           <div>
-            <p className="text-[13px] leading-5 text-muted">
+            <p className="text-body text-muted">
               This account does not exist on {NETWORK.label} yet. Horizon returns a 404 for it, not a
               zero balance — nothing has ever funded it.
             </p>
@@ -94,17 +94,17 @@ export function BalancePanel({
         <div className="flex flex-col gap-5">
           <div>
             <div className="flex items-baseline gap-1.5">
-              <span className="font-mono text-[34px] leading-none tracking-tight text-foreground">
+              <span className="font-mono text-h1 leading-none tracking-tight text-foreground">
                 {formatXlm(account.balanceXlm).whole}
               </span>
               {formatXlm(account.balanceXlm).fraction && (
-                <span className="font-mono text-[20px] leading-none text-muted">
+                <span className="font-mono text-h2 leading-none text-muted">
                   .{formatXlm(account.balanceXlm).fraction}
                 </span>
               )}
-              <span className="ml-1 text-sm font-medium text-muted">XLM</span>
+              <span className="ml-1 text-body font-medium text-muted">XLM</span>
             </div>
-            <p className="mt-2 text-[12px] text-muted">Total balance</p>
+            <p className="mt-2 text-small text-muted">Total balance</p>
           </div>
 
           <dl className="grid grid-cols-2 gap-x-4 gap-y-3 border-t border-border pt-4">
@@ -112,21 +112,21 @@ export function BalancePanel({
             <Stat label="Held as reserve" value={`${account.minimumBalanceXlm} XLM`} />
           </dl>
 
-          <p className="text-[12px] leading-5 text-muted">
+          <p className="max-w-[68ch] text-small text-muted">
             Every account holds a minimum balance the ledger will not let it spend
             {account.subentryCount > 0 ? `, plus ${account.subentryCount} subentries` : ""}. Only the
             available figure can leave this wallet.
           </p>
         </div>
       ) : (
-        <p className="text-[13px] text-muted">No balance loaded.</p>
+        <p className="text-body text-muted">No balance loaded.</p>
       )}
 
       <div className="mt-5 flex items-center justify-between border-t border-border pt-4">
         <Pill tone={account?.status === "funded" ? "success" : "neutral"}>
           {account?.status === "funded" ? "Funded" : account?.status === "unfunded" ? "Not funded" : "Unknown"}
         </Pill>
-        <span className="text-[12px] text-muted">{NETWORK.label}</span>
+        <span className="text-small text-muted">{NETWORK.label}</span>
       </div>
     </Card>
   );
@@ -135,8 +135,8 @@ export function BalancePanel({
 function Stat({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">{label}</dt>
-      <dd className="mt-1 font-mono text-[13px] text-secondary">{value}</dd>
+      <dt className="text-micro font-medium uppercase tracking-wider text-muted">{label}</dt>
+      <dd className="mt-1 font-mono text-small text-secondary">{value}</dd>
     </div>
   );
 }

@@ -128,10 +128,15 @@ export async function sendPayment(
   try {
     [source, destination] = await Promise.all([loadAccount(from), loadAccount(to)]);
   } catch (caught) {
+    // §9.1 — the raw message, verbatim, rather than a shrug. Whatever this is,
+    // it is not a case anyone anticipated, and hiding it costs the one person
+    // who could act on it the only clue they had. Nothing was sent either way.
     const message =
       caught instanceof HorizonUnreachableError
         ? "Could not reach Horizon to read the accounts. Check your connection and try again."
-        : "Something went wrong reading the accounts.";
+        : `Could not read the accounts: ${
+            caught instanceof Error ? caught.message : String(caught)
+          }. Nothing was sent.`;
     return { status: "failed", failure: { reason: "network", message } };
   }
 

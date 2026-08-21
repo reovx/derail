@@ -19,7 +19,7 @@ export function Field({
 
   return (
     <div className="flex flex-col gap-1.5">
-      <label htmlFor={id} className="text-[12px] font-medium uppercase tracking-wider text-muted">
+      <label htmlFor={id} className="text-micro font-medium uppercase tracking-wider text-muted">
         {label}
       </label>
 
@@ -32,19 +32,19 @@ export function Field({
           {...props}
           aria-invalid={Boolean(error)}
           aria-describedby={describedBy}
-          className={`h-10 w-full bg-transparent text-sm text-foreground outline-none placeholder:text-muted/60 ${
-            mono ? "font-mono text-[13px]" : ""
+          className={`h-10 w-full bg-transparent text-body text-foreground outline-none placeholder:text-muted/60 ${
+            mono ? "font-mono text-small" : ""
           }`}
         />
-        {suffix && <span className="shrink-0 text-[13px] text-muted">{suffix}</span>}
+        {suffix && <span className="shrink-0 text-small text-muted">{suffix}</span>}
       </div>
 
       {error ? (
-        <p id={`${id}-error`} className="text-[12px] leading-5 text-red-light">
+        <p id={`${id}-error`} className="text-small text-red-light">
           {error}
         </p>
       ) : hint ? (
-        <p id={`${id}-hint`} className="text-[12px] leading-5 text-muted">
+        <p id={`${id}-hint`} className="max-w-[68ch] text-small text-muted">
           {hint}
         </p>
       ) : null}

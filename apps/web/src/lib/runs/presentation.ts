@@ -82,6 +82,25 @@ export function formatRelativeTime(iso: string): string {
 }
 
 /**
+ * Every 64-hex token this run printed on **stdout** — `SPEC-UI-UX.md` §5.3.
+ *
+ * `stellar contract upload` prints the wasm hash there when the upload lands,
+ * and that hash is exactly the object a gate proposal carries. Linking the two
+ * is the product's thesis drawn as an edge: the commit that built the code and
+ * the approval that let it land, on one page.
+ *
+ * Candidates rather than a single answer, and stdout rather than both streams,
+ * because transaction hashes are the same shape — the spike found them on
+ * stderr while the artifact goes to stdout (`FINDINGS.md` §3.2). The caller
+ * decides by intersecting these with hashes that actually exist on the gate, so
+ * a wrong guess cannot produce a wrong link.
+ */
+export function wasmHashCandidates(stdout: string | null): string[] {
+  if (!stdout) return [];
+  return [...new Set(stdout.match(/\b[0-9a-f]{64}\b/g) ?? [])];
+}
+
+/**
  * The contract function being called, pulled from the argument vector.
  *
  * `stellar contract invoke ... -- release --valid_through_ledger N` puts the

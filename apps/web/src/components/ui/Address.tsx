@@ -22,7 +22,7 @@ export function Address({
   return (
     <span className="inline-flex items-center gap-2">
       <span
-        className="font-mono text-[13px] text-secondary break-all"
+        className="font-mono text-small text-secondary break-all"
         title={full ? undefined : address}
       >
         {full ? address : truncateAddress(address)}

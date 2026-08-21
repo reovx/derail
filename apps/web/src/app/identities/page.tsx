@@ -1,6 +1,8 @@
 "use client";
 
+import { Page, PageHeader, Section } from "@/components/layout/Page";
 import { Button } from "@/components/ui/Button";
+import { Card } from "@/components/ui/Card";
 import { TopUpForm } from "@/components/topup/TopUpForm";
 import { BalancePanel } from "@/components/wallet/BalancePanel";
 import { WalletNotice } from "@/components/wallet/WalletNotice";
@@ -8,57 +10,97 @@ import { NETWORK } from "@/lib/stellar/config";
 import { useAccount } from "@/lib/stellar/useAccount";
 import { useWallet } from "@/lib/wallet/WalletProvider";
 
-export default function Home() {
+/**
+ * Deploy identities — `SPEC-UI-UX.md` §5.6.
+ *
+ * The page renders whether or not a wallet is connected. It used to hide
+ * everything behind a connect prompt, including the explanation of what a
+ * deploy identity *is* — which meant the one screen that could teach someone
+ * why this matters was unreadable until they had already decided it did.
+ *
+ * The wallet gates the controls. It does not gate the screen.
+ */
+export default function Identities() {
   const { status, address, connecting, connect } = useWallet();
   const { account, loading, error, reload } = useAccount(address);
 
   const connected = status === "connected" && Boolean(address);
 
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8 sm:py-10">
-      <div className="flex flex-col gap-6">
-        <WalletNotice />
+    <Page>
+      <PageHeader
+        title="Deploy identities"
+        description={
+          <>
+            The account your <code className="font-mono text-secondary">stellar</code> CLI signs
+            with. They run dry between deploys, and a deploy that dies for want of XLM leaves no
+            contract and no trace.
+          </>
+        }
+      />
 
+      <WalletNotice />
+
+      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
         {connected && address ? (
           <>
-            <PageIntro />
-            <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] lg:items-start">
-              <BalancePanel
-                address={address}
-                account={account}
-                loading={loading}
-                error={error}
-                onReload={reload}
-              />
-              <TopUpForm
-                from={address}
-                spendable={account?.status === "funded" ? account.spendableXlm : null}
-                onSent={reload}
-              />
-            </div>
+            <BalancePanel
+              address={address}
+              account={account}
+              loading={loading}
+              error={error}
+              onReload={reload}
+            />
+            <TopUpForm
+              from={address}
+              spendable={account?.status === "funded" ? account.spendableXlm : null}
+              onSent={reload}
+            />
           </>
         ) : (
-          <Hero connecting={connecting} onConnect={connect} disabled={status === "initializing"} />
+          <>
+            <DisconnectedBalance
+              connecting={connecting}
+              onConnect={connect}
+              disabled={status === "initializing"}
+            />
+            <DisconnectedTopUp />
+          </>
         )}
       </div>
-    </main>
+
+      <Section title="Three states, and only one of them is an error">
+        <dl className="grid gap-x-8 gap-y-3 text-body sm:grid-cols-3">
+          <State label="Funded">
+            Holds more than the reserve. The spendable figure is what you can actually send —
+            sending the raw balance fails on the reserve.
+          </State>
+          <State label="Unfunded">
+            The account exists but sits at or below the reserve. A deploy from it will fail on
+            fees.
+          </State>
+          <State label="Never existed">
+            Horizon answers 404. That is information, not an error: topping it up is a{" "}
+            <code className="font-mono text-secondary">createAccount</code>, because a payment to
+            an account that does not exist fails.
+          </State>
+        </dl>
+      </Section>
+    </Page>
   );
 }
 
-function PageIntro() {
+function State({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <div className="flex flex-col gap-1">
-      <h1 className="text-lg font-semibold tracking-tight">Deploy identities</h1>
-      <p className="max-w-2xl text-[13px] leading-6 text-muted">
-        A deploy identity is the account your <code className="font-mono text-secondary">stellar</code>{" "}
-        CLI signs with. They run dry between deploys, and a deploy that dies for want of XLM leaves
-        no contract and no trace. Top one up here.
-      </p>
+      <dt className="text-micro font-medium uppercase tracking-wider text-muted">{label}</dt>
+      <dd className="text-body text-muted">{children}</dd>
     </div>
   );
 }
 
-function Hero({
+/** The shape of the balance panel, with the reason it is empty. */
+function DisconnectedBalance({
   connecting,
   onConnect,
   disabled,
@@ -68,53 +110,41 @@ function Hero({
   disabled: boolean;
 }) {
   return (
-    <div className="flex flex-col gap-10 py-8 sm:py-14">
-      <div className="flex max-w-3xl flex-col gap-5">
-        <h1 className="text-3xl font-semibold leading-tight tracking-tight sm:text-[40px] sm:leading-[1.1]">
-          See exactly where the path from code to chain
-          <span className="text-red"> went off track</span>.
-        </h1>
-        <p className="max-w-2xl text-[15px] leading-7 text-secondary">
-          Explorers and attestations tell you about contracts that exist. Derail tells you about
-          deploys that happened — including the ones that never produced a contract.
+    <Card title="Your wallet" subtitle="No wallet connected.">
+      <div className="flex flex-col items-start gap-3">
+        <p className="max-w-[52ch] text-body text-muted">
+          Balances are read from Horizon against the address your wallet reports, so this panel
+          needs one. Reading it costs nothing and signs nothing.
         </p>
-        <div className="flex flex-wrap items-center gap-3">
-          <Button variant="primary" loading={connecting} disabled={disabled} onClick={onConnect}>
-            {connecting ? "Waiting for wallet…" : "Connect wallet"}
-          </Button>
-          <span className="text-[13px] text-muted">
-            Freighter, on {NETWORK.label}. Read-only until you sign something.
-          </span>
-        </div>
+        <Button variant="primary" loading={connecting} disabled={disabled} onClick={onConnect}>
+          {connecting ? "Waiting for wallet…" : "Connect wallet"}
+        </Button>
+        <span className="text-small text-muted">
+          Freighter, xBull, Albedo, Lobstr, Rabet or Hana — on {NETWORK.label}.
+        </span>
       </div>
-
-      <div className="grid gap-px overflow-hidden rounded-[12px] border border-border bg-border sm:grid-cols-3">
-        <Cell
-          step="01"
-          title="Connect"
-          body="Your wallet address and its XLM balance, with the unfunded case handled as information rather than an error."
-        />
-        <Cell
-          step="02"
-          title="Top up"
-          body="Send XLM to the identity your CLI deploys with. A brand-new identity gets created by the same transaction."
-        />
-        <Cell
-          step="03"
-          title="Follow it"
-          body="Success or failure, the transaction hash is shown either way and links straight to Stellar Explorer."
-        />
-      </div>
-    </div>
+    </Card>
   );
 }
 
-function Cell({ step, title, body }: { step: string; title: string; body: string }) {
+/** The shape of the form, with its controls inert and the reason stated. */
+function DisconnectedTopUp() {
   return (
-    <div className="flex flex-col gap-2 bg-surface p-5">
-      <span className="font-mono text-[12px] text-red">{step}</span>
-      <h2 className="text-sm font-semibold tracking-tight">{title}</h2>
-      <p className="text-[13px] leading-6 text-muted">{body}</p>
-    </div>
+    <Card
+      title="Top up a deploy identity"
+      subtitle="The identity that signs your deploys, funded from the browser."
+    >
+      <div className="flex flex-col gap-4">
+        <p className="max-w-[52ch] text-body text-muted">
+          Topping up is a signed payment, so it needs a connected wallet. Derail builds the
+          transaction and hands it to the extension — your key never reaches this app.
+        </p>
+        <div>
+          <Button variant="primary" disabled>
+            Send
+          </Button>
+        </div>
+      </div>
+    </Card>
   );
 }

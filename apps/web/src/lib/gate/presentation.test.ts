@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { ledgersToApproxTime, proposalStatus, roleFor } from "./presentation";
+import {
+  ledgersToApproxTime,
+  mayReject,
+  pendingFor,
+  proposalStatus,
+  roleFor,
+} from "./presentation";
 import { deriveStatus, effectiveApprovals, type Proposal } from "./read";
 
 const ALICE = "GALICE";
@@ -139,5 +145,80 @@ describe("ledgersToApproxTime", () => {
     // "0 minutes" on a proposal that has not expired would be a lie.
     expect(ledgersToApproxTime(1)).toBe("1 minute");
     expect(ledgersToApproxTime(0)).toBe("now");
+  });
+});
+
+/**
+ * `reject` has only two conditions in the contract — caller is in the approver
+ * set, and the proposal is still open on the ledger. Both consequences below
+ * are easy to get wrong by reasoning from `roleFor`, which answers the narrower
+ * question of whether an *approval* is on offer.
+ */
+describe("mayReject", () => {
+  it("lets the proposer withdraw their own proposal", () => {
+    // `roleFor` refuses ALICE an approval here. Rejection is the other door,
+    // and the contract has a test named for it.
+    const own = proposal({ proposer: ALICE });
+
+    expect(roleFor(own, APPROVERS, ALICE).can).toBe("nothing");
+    expect(mayReject(own, APPROVERS, ALICE)).toBe(true);
+  });
+
+  it("still allows a refusal after the threshold is met", () => {
+    // `Approved` is derived on read, not stored: until someone executes it the
+    // ledger still says Open, so it can still be stopped.
+    const approved = proposal({ status: "Approved", storedStatus: "Open" });
+
+    expect(mayReject(approved, APPROVERS, BOB)).toBe(true);
+  });
+
+  it("refuses once the proposal is settled on the ledger", () => {
+    for (const stored of ["Executed", "Rejected"] as const) {
+      expect(mayReject(proposal({ status: stored, storedStatus: stored }), APPROVERS, BOB)).toBe(
+        false,
+      );
+    }
+  });
+
+  it("refuses an expired proposal, whatever storage says", () => {
+    expect(mayReject(proposal({ status: "Expired" }), APPROVERS, BOB)).toBe(false);
+  });
+
+  it("refuses a wallet outside the approver set, and an absent one", () => {
+    expect(mayReject(proposal(), APPROVERS, STRANGER)).toBe(false);
+    expect(mayReject(proposal(), APPROVERS, null)).toBe(false);
+  });
+});
+
+/**
+ * The nav badge and the attention row are built on this. A count that
+ * disagrees with what `/gate/[id]` then offers is worse than no count: it sends
+ * someone to a proposal they cannot act on.
+ */
+describe("pendingFor", () => {
+  it("counts only what this wallet could actually approve", () => {
+    const proposals = [
+      proposal({ id: 1 }), // BOB may approve
+      proposal({ id: 2, approvals: [BOB] }), // already signed
+      proposal({ id: 3, proposer: BOB }), // his own
+      proposal({ id: 4, status: "Executed", storedStatus: "Executed" }), // terminal
+    ];
+
+    expect(pendingFor(proposals, APPROVERS, BOB).map((p) => p.id)).toEqual([1]);
+  });
+
+  it("is empty without a wallet, and for an outsider", () => {
+    const proposals = [proposal()];
+
+    expect(pendingFor(proposals, APPROVERS, null)).toHaveLength(0);
+    expect(pendingFor(proposals, APPROVERS, STRANGER)).toHaveLength(0);
+  });
+
+  it("agrees with roleFor on every proposal it returns", () => {
+    const proposals = [proposal({ id: 1 }), proposal({ id: 2, approvals: [BOB] })];
+
+    for (const candidate of pendingFor(proposals, APPROVERS, BOB)) {
+      expect(roleFor(candidate, APPROVERS, BOB)).toEqual({ can: "approve" });
+    }
   });
 });

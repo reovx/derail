@@ -1,34 +1,49 @@
 "use client";
 
-import { Address } from "@/components/ui/Address";
-import { Card } from "@/components/ui/Card";
+import { GateSummaryHeader } from "./GateSummaryHeader";
+import { ProposalRow } from "./ProposalRow";
+import { EventFeed } from "./EventFeed";
+import { Section } from "@/components/layout/Page";
 import { Notice } from "@/components/ui/Notice";
 import { Spinner } from "@/components/ui/Button";
-import { useGateState } from "@/lib/gate/useGateState";
-import type { GateState } from "@/lib/gate/read";
-import { explorerContractUrl } from "@/lib/stellar/config";
-import { EventFeed } from "./EventFeed";
-import { ProposalCard } from "./ProposalCard";
-import { ProposeForm } from "./ProposeForm";
+import { useGateLive } from "@/lib/gate/GateProvider";
+import { isTerminal, pendingFor } from "@/lib/gate/presentation";
+import type { GateState, Proposal } from "@/lib/gate/read";
+import { useWallet } from "@/lib/wallet/WalletProvider";
 
+/**
+ * The gate, as a list — `SPEC-UI-UX.md` §5.4.
+ *
+ * It used to be a workbench: every proposal rendered as a card carrying its own
+ * approve and reject buttons, with the gate's own configuration folded away in
+ * a disclosure underneath. That put the product's most consequential action
+ * inside a scrolling list and its most necessary context out of sight.
+ *
+ * Now the configuration leads, the proposals are rows, and acting on one
+ * happens on its own page.
+ */
 export function GateReview({
   initial,
   gateId,
   targetId,
 }: {
+  /** Server-rendered first paint. The provider takes over once it has read. */
   initial: GateState | null;
   gateId: string;
   targetId: string;
 }) {
-  const { state, status, error, refresh } = useGateState(initial);
+  const { state: live, status, error, refresh } = useGateLive();
+  const { address } = useWallet();
+
+  const state = live ?? initial;
 
   if (!state) {
     return status === "error" ? (
       <Notice tone="failure" title="Could not read the gate">
-        {error}
+        {error} The page will keep trying.
       </Notice>
     ) : (
-      <div className="flex items-center gap-3 text-[13px] text-muted">
+      <div className="flex items-center gap-3 text-body text-muted">
         <Spinner className="h-4 w-4" />
         Reading the gate from the ledger…
       </div>
@@ -36,8 +51,16 @@ export function GateReview({
   }
 
   const { config, proposals, events, ledger } = state;
-  const open = proposals.filter((proposal) => !["Executed", "Rejected", "Expired"].includes(proposal.status));
-  const closed = proposals.filter((proposal) => ["Executed", "Rejected", "Expired"].includes(proposal.status));
+  const waiting = new Set(
+    pendingFor(proposals, config.approvers, address).map((proposal) => proposal.id),
+  );
+
+  // Anything still live leads, and within that, anything waiting on this wallet
+  // leads again. Settled proposals keep newest-first.
+  const open = proposals
+    .filter((proposal) => !isTerminal(proposal.status))
+    .sort(byWaiting(waiting));
+  const settled = proposals.filter((proposal) => isTerminal(proposal.status));
 
   return (
     <div className="flex flex-col gap-6">
@@ -47,88 +70,63 @@ export function GateReview({
         </Notice>
       )}
 
-      <Card
-        title="The gate"
-        subtitle={`An upgrade to this target cannot land until ${config.threshold} of ${config.approvers.length} approvers have signed for it on-chain.`}
-      >
-        <dl className="grid grid-cols-1 gap-x-6 gap-y-4 text-[13px] sm:grid-cols-2">
-          <div className="flex flex-col gap-1">
-            <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">Gate</dt>
-            <dd>
-              <ContractLink id={gateId} />
-            </dd>
-          </div>
-          <div className="flex flex-col gap-1">
-            <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">
-              Governed target
-            </dt>
-            <dd>
-              <ContractLink id={targetId} />
-            </dd>
-          </div>
-          <div className="flex flex-col gap-1 sm:col-span-2">
-            <dt className="text-[11px] font-medium uppercase tracking-wider text-muted">
-              Approvers · {config.threshold} of {config.approvers.length} required
-            </dt>
-            <dd className="flex flex-col gap-1.5">
-              {config.approvers.map((approver) => (
-                <Address key={approver} address={approver} />
-              ))}
-            </dd>
-          </div>
-        </dl>
+      <GateSummaryHeader
+        gateId={gateId}
+        targetId={targetId}
+        config={config}
+        ledger={ledger}
+        onProposed={refresh}
+      />
 
-        <p className="mt-4 text-[12px] leading-5 text-muted">
-          Ledger {ledger.toLocaleString()}. The approver set is fixed at registration and can only
-          be changed by a threshold of current approvers — not by the admin, because one key able
-          to rewrite the set would mean the gate is bypassed by adding yourself.
-        </p>
-      </Card>
-
-      <ProposeForm approvers={config.approvers} onProposed={refresh} />
-
-      <section className="flex flex-col gap-4">
-        <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">
-          Open proposals
-        </h2>
+      <Section title="Open" count={open.length}>
         {open.length === 0 ? (
-          <p className="text-[13px] leading-6 text-muted">
+          <p className="rounded-[10px] border border-border bg-surface px-4 py-3.5 text-body text-muted">
             Nothing awaiting review. An upgrade to{" "}
             <span className="font-mono text-secondary">{targetId.slice(0, 6)}…</span> has to start
             here — the target has no admin key to fall back on, by design.
           </p>
         ) : (
-          open.map((proposal) => (
-            <ProposalCard
-              key={proposal.id}
-              proposal={proposal}
-              config={config}
-              ledger={ledger}
-              onDone={refresh}
-            />
-          ))
+          <div className="@container overflow-hidden rounded-[10px] border border-border bg-surface">
+            <ul className="divide-y divide-border-soft">
+              {open.map((proposal) => (
+                <ProposalRow
+                  key={proposal.id}
+                  proposal={proposal}
+                  config={config}
+                  ledger={ledger}
+                  waitingOnYou={waiting.has(proposal.id)}
+                />
+              ))}
+            </ul>
+          </div>
         )}
-      </section>
+      </Section>
 
-      {closed.length > 0 && (
-        <section className="flex flex-col gap-4">
-          <h2 className="text-[13px] font-semibold uppercase tracking-wider text-muted">
-            Settled
-          </h2>
-          <p className="-mt-2 text-[12px] leading-5 text-muted">
-            Including the ones that were stopped. A rejected upgrade leaves as permanent a record
-            as one that shipped, which is the whole reason approvals are individual transactions.
-          </p>
-          {closed.map((proposal) => (
-            <ProposalCard
-              key={proposal.id}
-              proposal={proposal}
-              config={config}
-              ledger={ledger}
-              onDone={refresh}
-            />
-          ))}
-        </section>
+      {/*
+        Settled is a section, not a collapsed panel. A rejected upgrade leaves as
+        permanent a record as one that shipped, which is the whole reason
+        approvals are individual transactions — putting that record behind a
+        caret contradicts the reason it exists.
+      */}
+      {settled.length > 0 && (
+        <Section
+          title="Settled"
+          count={settled.length}
+          description="Including the ones that were stopped. A refusal is recorded on the ledger with the address that ended it, and nothing else in the ecosystem keeps that."
+        >
+          <div className="@container overflow-hidden rounded-[10px] border border-border bg-surface">
+            <ul className="divide-y divide-border-soft">
+              {settled.map((proposal) => (
+                <ProposalRow
+                  key={proposal.id}
+                  proposal={proposal}
+                  config={config}
+                  ledger={ledger}
+                />
+              ))}
+            </ul>
+          </div>
+        </Section>
       )}
 
       <EventFeed events={events} live={status === "live"} />
@@ -136,15 +134,9 @@ export function GateReview({
   );
 }
 
-function ContractLink({ id }: { id: string }) {
-  return (
-    <a
-      href={explorerContractUrl(id)}
-      target="_blank"
-      rel="noreferrer"
-      className="font-mono text-[13px] text-secondary underline underline-offset-2 transition-colors hover:text-foreground break-all"
-    >
-      {id}
-    </a>
-  );
+function byWaiting(waiting: ReadonlySet<number>) {
+  return (a: Proposal, b: Proposal) => {
+    const mine = Number(waiting.has(b.id)) - Number(waiting.has(a.id));
+    return mine !== 0 ? mine : b.id - a.id;
+  };
 }

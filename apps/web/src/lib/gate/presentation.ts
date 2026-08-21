@@ -106,6 +106,46 @@ export function roleFor(
   return { can: "approve" };
 }
 
+/**
+ * Whether this wallet may refuse this proposal — `SPEC-UI-UX.md` §5.5.
+ *
+ * Separate from `roleFor`, which answers the narrower question of whether an
+ * *approval* is on offer. The contract's `reject` has only two conditions: the
+ * caller is in the approver set, and the proposal is still open on the ledger.
+ * Two consequences follow that a UI built around approval alone would miss.
+ *
+ * The proposer may reject — that is how a proposal is withdrawn, and the
+ * contract has a test named for it. And a proposal that has reached its
+ * threshold is still rejectable, because `Approved` is derived on read rather
+ * than stored: until someone executes it, the ledger still says `Open`.
+ */
+export function mayReject(
+  proposal: Proposal,
+  approvers: string[],
+  address: string | null,
+): boolean {
+  if (!address || !approvers.includes(address)) return false;
+  if (proposal.storedStatus !== "Open") return false;
+  return proposal.status !== "Expired";
+}
+
+/**
+ * The proposals this address is expected to act on — `SPEC-UI-UX.md` §3.2.
+ *
+ * Defined in terms of `roleFor` on purpose. The nav badge, the attention row on
+ * `/` and the buttons on `/gate/[id]` all answer the same question, and a count
+ * that disagrees with what the screen then offers is worse than no count: it
+ * sends someone to a proposal they cannot act on.
+ */
+export function pendingFor(
+  proposals: Proposal[],
+  approvers: string[],
+  address: string | null,
+): Proposal[] {
+  if (!address) return [];
+  return proposals.filter((proposal) => roleFor(proposal, approvers, address).can === "approve");
+}
+
 /** ~5 second ledgers, so this is close enough to be useful and never precise. */
 export function ledgersToApproxTime(ledgers: number): string {
   if (ledgers <= 0) return "now";

@@ -1,61 +1,53 @@
-import Link from "next/link";
-
-import { LiveRuns } from "@/components/runs/LiveRuns";
-import { Notice } from "@/components/ui/Notice";
-import { listRuns, ProjectNotConfiguredError } from "@/lib/runs/queries";
+import { Overview } from "@/components/home/Overview";
+import { Pitch } from "@/components/home/Pitch";
+import { Page } from "@/components/layout/Page";
+import { ProjectNotice } from "@/components/runs/ProjectNotice";
+import { DEFAULT_RUN_QUERY } from "@/lib/runs/filters";
+import { countRuns, listRuns, runTally } from "@/lib/runs/queries";
 
 /** Every visit reads the current state of the timeline; nothing here is cacheable. */
 export const dynamic = "force-dynamic";
 
-export default async function Deployments() {
-  let runs;
+/** A summary, not the list. The list has its own screen. */
+const RECENT = { ...DEFAULT_RUN_QUERY, size: 6 as const };
+
+/**
+ * The front door — `SPEC-UI-UX.md` §5.1.
+ *
+ * One route, two states. A project with no recorded runs gets the argument; a
+ * project with runs gets the console.
+ *
+ * The branch is a `count`, not a list. "Has this project ever recorded
+ * anything" is a different question from "what are the most recent six", and
+ * asking it as a count keeps the front door's cost the same whether the project
+ * holds eight runs or eighty thousand.
+ */
+export default async function FrontDoor() {
+  let total, recent, tally;
   try {
-    runs = await listRuns();
+    total = await countRuns();
+    // The pitch is returned below, outside the try: JSX constructed inside one
+    // renders after the catch has gone, so an error thrown while rendering it
+    // would land nowhere.
+    if (total > 0) {
+      [recent, tally] = await Promise.all([listRuns(RECENT), runTally(DEFAULT_RUN_QUERY)]);
+    }
   } catch (error) {
     return (
-      <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8">
-        <Notice
-          tone="failure"
-          title={
-            error instanceof ProjectNotConfiguredError
-              ? "No project configured"
-              : "Could not load runs"
-          }
-        >
-          {error instanceof ProjectNotConfiguredError ? (
-            <>
-              Set <code className="font-mono text-secondary">DERAIL_PROJECT_ID</code> in{" "}
-              <code className="font-mono text-secondary">apps/web/.env.local</code>. Create a
-              project with{" "}
-              <code className="font-mono text-secondary">scripts/seed-project.mjs</code>.
-            </>
-          ) : (
-            (error as Error).message
-          )}
-        </Notice>
-      </main>
+      <Page>
+        <ProjectNotice error={error} />
+      </Page>
     );
   }
 
+  if (total === 0 || !recent || !tally) return <Pitch />;
+
   return (
-    <main className="mx-auto w-full max-w-6xl flex-1 px-5 py-8">
-      <div className="flex flex-col gap-6">
-        <header className="flex flex-col gap-1">
-          <h1 className="text-lg font-semibold tracking-tight">Deployments</h1>
-          <p className="max-w-2xl text-[13px] leading-6 text-muted">
-            Every wrapped command, whether or not it produced a contract. Two of the four classes
-            below leave no trace in any explorer, attestation or registry.
-          </p>
-        </header>
-
-        <LiveRuns initialRuns={runs} projectId={process.env.DERAIL_PROJECT_ID ?? null} />
-
-        <p className="text-[12px] leading-5 text-muted">
-          Records arrive from the{" "}
-          <code className="font-mono text-secondary">derail</code> wrapper. Deploy identities run
-          dry between deploys — <Link href="/identities" className="text-secondary underline underline-offset-2 hover:text-foreground">top one up</Link>.
-        </p>
-      </div>
-    </main>
+    <Overview
+      initialRuns={recent.rows}
+      tally={tally}
+      total={total}
+      projectId={process.env.DERAIL_PROJECT_ID ?? null}
+    />
   );
 }

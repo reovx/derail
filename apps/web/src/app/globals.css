@@ -20,25 +20,57 @@
   --surface-elevated: #202a38;
   --border: #303846;
 
+  /* The chrome sits *under* the content it frames. A dashboard shell that is
+     lighter than the data reads as the subject of the page; this one recedes,
+     which is the whole job of navigation you use forty times a day. */
+  --chrome: #0a0e13;
+  /* A row under the cursor. Too faint to be decoration, strong enough that a
+     dense list tells you which line you are on. */
+  --hover: #161d28;
+  /* Hairline inside a surface — dividers between rows, not around them. */
+  --border-soft: #232b37;
+
   --foreground: var(--derail-white);
-  --muted: var(--derail-gray);
+
+  /* 7.25:1 on --background. The previous #6b7280 measured 3.92:1 — below AA
+     for normal text — while carrying most of every page at 11–13px. */
+  --muted: #98a1b0;
+  /* Decorative marks only: separators, hairlines, disabled glyphs. Never text. */
+  --muted-dim: var(--derail-gray);
   --secondary: var(--derail-light);
 
-  /* Status — §11. Red is reserved for failure and brand, nothing else. */
-  --status-success: #22c55e;
-  --status-warning: #f59e0b;
+  /* Status — §11. Tuned against --derail-red rather than lifted from a stock
+     palette, so the status family and the brand belong to each other. */
+  --status-success: #35b37e;
+  --status-warning: #c9902f;
   --status-failure: var(--derail-red);
-  --status-running: #3b82f6;
-  --status-neutral: var(--derail-gray);
+  --status-running: #5b8db8;
+  --status-neutral: var(--muted);
+
+  /* Status tints for pill/notice text — each ≥4.5:1 on --surface. */
+  --tint-success: #7fd8ab;
+  --tint-warning: #e8c07a;
+  --tint-running: #9dc2e0;
+  --tint-failure: #f5a3a8;
+
+  /* Status hairlines for pill/notice borders. */
+  --edge-success: #1f4d38;
+  --edge-warning: #4d3c15;
+  --edge-running: #26435c;
+  --edge-failure: #5b1f24;
 }
 
 @theme inline {
   --color-background: var(--background);
   --color-surface: var(--surface);
   --color-elevated: var(--surface-elevated);
+  --color-chrome: var(--chrome);
+  --color-hover: var(--hover);
   --color-border: var(--border);
+  --color-border-soft: var(--border-soft);
   --color-foreground: var(--foreground);
   --color-muted: var(--muted);
+  --color-muted-dim: var(--muted-dim);
   --color-secondary: var(--secondary);
 
   --color-red: var(--derail-red);
@@ -51,8 +83,24 @@
   --color-running: var(--status-running);
   --color-neutral: var(--status-neutral);
 
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-plex-sans);
+  --font-mono: var(--font-plex-mono);
+  --font-display: var(--font-chivo);
+
+  /* Type scale — six steps, §8. Ad-hoc pixel sizes are not permitted; if a
+     size is missing from this scale, the scale is wrong, not the call site. */
+  --text-display: 2.75rem; /* 44px — hero only */
+  --text-display--line-height: 1.05;
+  --text-h1: 1.75rem; /* 28px — page titles */
+  --text-h1--line-height: 1.2;
+  --text-h2: 1rem; /* 16px — card and section titles */
+  --text-h2--line-height: 1.4;
+  --text-body: 0.875rem; /* 14px — prose, anything read in sentences */
+  --text-body--line-height: 1.6;
+  --text-small: 0.8125rem; /* 13px — dense metadata, table cells, hashes */
+  --text-small--line-height: 1.5;
+  --text-micro: 0.6875rem; /* 11px — uppercase labels only */
+  --text-micro--line-height: 1.4;
 
   /* §10 — consistent radius system, pills only for status and metadata. */
   --radius-sm: 6px;
@@ -68,7 +116,36 @@
 body {
   background: var(--background);
   color: var(--foreground);
-  font-family: var(--font-geist-sans), system-ui, sans-serif;
+  font-family: var(--font-plex-sans), system-ui, sans-serif;
+}
+
+/* The shell — a fixed rail and a scrolling console beside it.
+   Wide enough for `Environment variables` on one line, narrow enough that the
+   data column still gets the room; the run table is the reason this app has a
+   window. */
+:root {
+  --sidebar-w: 15.5rem;
+  --topbar-h: 3.25rem;
+}
+
+/* The chrome keeps its own scrollbar, and it is not a feature. */
+.scroll-thin {
+  scrollbar-width: thin;
+  scrollbar-color: var(--border) transparent;
+}
+
+.scroll-thin::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+
+.scroll-thin::-webkit-scrollbar-thumb {
+  background: var(--border);
+  border-radius: 999px;
+}
+
+.scroll-thin::-webkit-scrollbar-track {
+  background: transparent;
 }
 
 ::selection {
@@ -77,8 +154,92 @@ body {
 }
 
 /* Focus is a single consistent ring — the UI is dense, so it has to be
-   unmistakable without adding decoration. */
+   unmistakable without adding decoration. Not red: red means failure here, and
+   a red ring is invisible against a red control. */
 :focus-visible {
-  outline: 2px solid var(--derail-red);
+  outline: 2px solid var(--secondary);
   outline-offset: 2px;
+}
+
+/* §14 — motion is subtle and functional. Nothing continuous, nothing glowing,
+   nothing over 300ms. The brand stays controlled even when reporting failure. */
+@media (prefers-reduced-motion: no-preference) {
+  /* A run arriving over Realtime. Without this the "Live" indicator claims a
+     freshness the interface never demonstrates. */
+  @keyframes derail-row-in {
+    from {
+      opacity: 0;
+      transform: translateY(-4px);
+      background-color: var(--surface-elevated);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+      background-color: transparent;
+    }
+  }
+
+  /* Timeline nodes on mount — "one continuous system" made kinetic (§21.01). */
+  @keyframes derail-node-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  @keyframes derail-notice-in {
+    from {
+      opacity: 0;
+      transform: translateY(4px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-row-in {
+    animation: derail-row-in 240ms ease-out both;
+  }
+
+  .animate-node-in {
+    animation: derail-node-in 220ms ease-out both;
+  }
+
+  .animate-notice-in {
+    animation: derail-notice-in 180ms ease-out both;
+  }
+
+  /* The navigation rail arriving on a narrow screen. It is the only overlay in
+     the product, and it has to read as "the sidebar you already know slid in",
+     not as a new surface appearing from nowhere. */
+  @keyframes derail-rail-in {
+    from {
+      transform: translateX(-100%);
+    }
+    to {
+      transform: none;
+    }
+  }
+
+  @keyframes derail-scrim-in {
+    from {
+      opacity: 0;
+    }
+    to {
+      opacity: 1;
+    }
+  }
+
+  .animate-rail-in {
+    animation: derail-rail-in 200ms cubic-bezier(0.32, 0.72, 0, 1) both;
+  }
+
+  .animate-scrim-in {
+    animation: derail-scrim-in 200ms ease-out both;
+  }
 }

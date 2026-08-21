@@ -27,7 +27,7 @@ export function TransactionResult({
 }) {
   if (result.status === "success") {
     return (
-      <div className="flex flex-col gap-4 rounded-[8px] border border-[#1d4a2f] bg-[rgba(34,197,94,0.06)] p-4">
+      <div className="flex flex-col gap-4 rounded-[8px] border border-[var(--edge-success)] bg-[rgba(53,179,126,0.06)] p-4">
         <div className="flex items-center justify-between gap-3">
           <Pill tone="success">Confirmed</Pill>
           <Button size="sm" variant="ghost" onClick={onDismiss}>
@@ -100,7 +100,7 @@ export function TransactionResult({
     >
       <p>{failure.message}</p>
       {failure.reason === "chain_rejected" && failure.codes?.length ? (
-        <p className="mt-2 font-mono text-[12px] text-muted">{failure.codes.join(" · ")}</p>
+        <p className="mt-2 font-mono text-small text-muted">{failure.codes.join(" · ")}</p>
       ) : null}
       {failure.reason === "chain_rejected" && failure.hash ? (
         <div className="mt-3">
@@ -115,8 +115,8 @@ function HashRow({ hash, ledger }: { hash: string; ledger?: number }) {
   return (
     <div className="flex flex-wrap items-center gap-x-4 gap-y-2 border-t border-border/60 pt-3">
       <div className="flex min-w-0 items-center gap-2">
-        <span className="text-[11px] font-medium uppercase tracking-wider text-muted">Tx</span>
-        <span className="truncate font-mono text-[13px] text-secondary" title={hash}>
+        <span className="text-micro font-medium uppercase tracking-wider text-muted">Tx</span>
+        <span className="truncate font-mono text-small text-secondary" title={hash}>
           {truncateAddress(hash, 10, 8)}
         </span>
         <CopyButton value={hash} label="transaction hash" />
@@ -124,8 +124,8 @@ function HashRow({ hash, ledger }: { hash: string; ledger?: number }) {
 
       {ledger ? (
         <div className="flex items-center gap-2">
-          <span className="text-[11px] font-medium uppercase tracking-wider text-muted">Ledger</span>
-          <span className="font-mono text-[13px] text-secondary">{ledger.toLocaleString("en-US")}</span>
+          <span className="text-micro font-medium uppercase tracking-wider text-muted">Ledger</span>
+          <span className="font-mono text-small text-secondary">{ledger.toLocaleString("en-US")}</span>
         </div>
       ) : null}
 
@@ -133,7 +133,7 @@ function HashRow({ hash, ledger }: { hash: string; ledger?: number }) {
         href={explorerTxUrl(hash)}
         target="_blank"
         rel="noreferrer"
-        className="inline-flex items-center gap-1.5 text-[13px] text-secondary transition-colors hover:text-foreground"
+        className="inline-flex items-center gap-1.5 text-small text-secondary transition-colors hover:text-foreground"
       >
         Stellar Explorer
         <ExternalIcon />

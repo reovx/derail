@@ -1,6 +1,12 @@
 import { describe, expect, it } from "vitest";
 
-import { formatDuration, functionName, runStatus, txStatus } from "./presentation";
+import {
+  formatDuration,
+  functionName,
+  runStatus,
+  txStatus,
+  wasmHashCandidates,
+} from "./presentation";
 
 /**
  * The tone mapping is a product decision, not styling. `SPEC-DESIGN-LANGUAGE.md`
@@ -82,5 +88,42 @@ describe("formatDuration", () => {
   it("drops a decimal place once the number gets long", () => {
     expect(formatDuration(4_120)).toBe("4.12 s");
     expect(formatDuration(64_500)).toBe("64.5 s");
+  });
+});
+
+/**
+ * The edge between a recorded deploy and the proposal that carries what it
+ * built. Candidates rather than an answer, because a transaction hash is the
+ * same shape as a wasm hash — the caller decides by intersecting these with
+ * hashes the gate actually holds, so a wrong guess cannot produce a wrong link.
+ */
+describe("wasmHashCandidates", () => {
+  it("finds the hash an upload printed", () => {
+    const hash = "6457ae4808ca8feb9833b1ffc745d93b82542592a28597853a01053b71f584cf";
+
+    expect(wasmHashCandidates(`${hash}\n`)).toEqual([hash]);
+  });
+
+  it("returns every distinct candidate, once each", () => {
+    const a = "a".repeat(64);
+    const b = "b".repeat(64);
+
+    expect(wasmHashCandidates(`${a}\n${b}\n${a}`)).toEqual([a, b]);
+  });
+
+  it("ignores contract ids and short hex", () => {
+    // Contract ids are 56 characters and start with C, so they cannot collide.
+    const output = "CB5CD7U6HTHZNEYGR7XYOJOOR2NJ2DMNP5ULYIWN5LSLLOK32YLVPVLW\ndeadbeef\n";
+
+    expect(wasmHashCandidates(output)).toEqual([]);
+  });
+
+  it("does not match a longer hex run that merely contains 64 characters", () => {
+    expect(wasmHashCandidates("f".repeat(70))).toEqual([]);
+  });
+
+  it("handles a run that captured nothing", () => {
+    expect(wasmHashCandidates(null)).toEqual([]);
+    expect(wasmHashCandidates("")).toEqual([]);
   });
 });

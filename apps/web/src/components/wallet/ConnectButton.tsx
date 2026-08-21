@@ -29,7 +29,7 @@ export function ConnectButton() {
   if (status === "connected" && address) {
     return (
       <div className="flex items-center gap-2">
-        <span className="hidden items-center gap-2 rounded-[6px] border border-border bg-elevated px-3 py-1.5 font-mono text-[13px] text-secondary sm:inline-flex">
+        <span className="hidden items-center gap-2 rounded-[6px] border border-border bg-elevated px-3 py-1.5 font-mono text-small text-secondary sm:inline-flex">
           <span aria-hidden="true" className="h-1.5 w-1.5 rounded-full bg-success" />
           {truncateAddress(address, 4, 4)}
         </span>
