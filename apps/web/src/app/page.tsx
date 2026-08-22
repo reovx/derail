@@ -206,11 +206,95 @@ function BuiltOn() {
 
 /* -------------------------------------------------------------------------- */
 
-const OUTCOMES: { label: string; tone: string; what: string; elsewhere: string }[] = [
-  { label: "Confirmed", tone: "success", what: "The ledger accepted it.", elsewhere: "A contract on the explorer" },
-  { label: "Chain failed", tone: "failure", what: "Simulation passed. The chain refused it, and charged the fee anyway.", elsewhere: "One opaque failed transaction" },
-  { label: "Sim failed", tone: "warning", what: "Died at simulation in about 900ms. No transaction ever existed.", elsewhere: "Nothing, anywhere" },
-  { label: "Not submitted", tone: "neutral", what: "The CLI refused the arguments. Nothing ran.", elsewhere: "Nothing, anywhere" },
+/* The four endings as a transaction autopsy: a big index and status badge, a
+   trace down the deploy's five stages that breaks where the run died, and a
+   mono footer of what it left behind. Not four marketing cards — four
+   post-mortems, in derail's own status palette (Stellar, so it is a ledger and
+   never a block, and there is no fee denominated in another chain's coin). */
+type Tone = "success" | "failure" | "warning" | "neutral";
+type StageState = "ok" | "fail" | "na";
+
+const TONE_STATUS: Record<Tone, string> = {
+  success: "var(--status-success)",
+  failure: "var(--status-failure)",
+  warning: "var(--status-warning)",
+  neutral: "var(--muted)",
+};
+const TONE_TINT: Record<Tone, string> = {
+  success: "var(--tint-success)",
+  failure: "var(--tint-failure)",
+  warning: "var(--tint-warning)",
+  neutral: "var(--muted)",
+};
+// The five stages a deploy passes through, and how each reads when it clears or
+// dies there. The trace labels itself off these.
+const STAGE_NAMES = ["Command", "Simulation", "Transaction", "Chain", "Ledger"];
+const STAGE_OK = ["accepted", "passed", "submitted", "accepted", "recorded"];
+const STAGE_FAIL = ["rejected", "failed", "failed", "rejected", "—"];
+
+type Outcome = {
+  n: string;
+  label: string;
+  tone: Tone;
+  glyph: string;
+  what: string;
+  stages: StageState[];
+  meta: { k: string; v: string; tone?: Tone }[];
+};
+
+const OUTCOMES: Outcome[] = [
+  {
+    n: "01",
+    label: "Confirmed",
+    tone: "success",
+    glyph: "✓",
+    what: "The ledger accepted it.",
+    stages: ["ok", "ok", "ok", "ok", "ok"],
+    meta: [
+      { k: "Contract", v: "CB5C…VPLW", tone: "success" },
+      { k: "Ledger", v: "#4,187,234" },
+      { k: "Trace", v: "Available", tone: "success" },
+    ],
+  },
+  {
+    n: "02",
+    label: "Chain failed",
+    tone: "failure",
+    glyph: "✕",
+    what: "Simulation passed. The chain refused it, and charged the fee anyway.",
+    stages: ["ok", "ok", "ok", "fail", "na"],
+    meta: [
+      { k: "Tx", v: "0f04…7520" },
+      { k: "Fee", v: "charged", tone: "failure" },
+      { k: "Trace", v: "Opaque", tone: "failure" },
+    ],
+  },
+  {
+    n: "03",
+    label: "Sim failed",
+    tone: "warning",
+    glyph: "▲",
+    what: "Died at simulation in about 900ms. No transaction ever existed.",
+    stages: ["ok", "fail", "na", "na", "na"],
+    meta: [
+      { k: "Contract", v: "none" },
+      { k: "Tx", v: "none" },
+      { k: "Trace", v: "none" },
+    ],
+  },
+  {
+    n: "04",
+    label: "Not submitted",
+    tone: "neutral",
+    glyph: "–",
+    what: "The CLI refused the arguments. Nothing ran.",
+    stages: ["fail", "na", "na", "na", "na"],
+    meta: [
+      { k: "Contract", v: "none" },
+      { k: "Tx", v: "none" },
+      { k: "Trace", v: "none" },
+    ],
+  },
 ];
 
 function Outcomes() {
@@ -221,16 +305,39 @@ function Outcomes() {
         about the deploys that didn&apos;t — which is most of the ones you need to debug.
       </p>
 
-      <div className="mt-8 grid gap-px overflow-hidden rounded-xl border border-border bg-border sm:grid-cols-2 lg:grid-cols-4">
-        {OUTCOMES.map(({ label, tone, what, elsewhere }) => (
-          <div key={label} className="relative bg-surface px-5 py-6">
-            <span aria-hidden="true" className="absolute inset-y-0 left-0 w-[3px]" style={{ background: `var(--status-${tone})` }} />
-            <p className="text-small font-semibold text-foreground">{label}</p>
-            <p className="mt-2 text-small leading-relaxed text-muted">{what}</p>
-            <p className="mt-4 text-micro font-medium uppercase tracking-wider text-muted-dim">On an explorer</p>
-            <p className="mt-0.5 text-small text-secondary">{elsewhere}</p>
+      <div className="mt-8">
+        {/* The one command every ending forks from. */}
+        <div className="flex justify-center">
+          <div className="inline-flex min-w-0 max-w-full items-center gap-2.5 rounded-[8px] border border-border bg-chrome px-4 py-2.5">
+            <span aria-hidden="true" className="h-1.5 w-1.5 shrink-0 rounded-full" style={{ background: "var(--secondary)" }} />
+            <code className="min-w-0 overflow-x-auto whitespace-nowrap font-mono text-small text-secondary">
+              $ derail -- stellar contract deploy --network testnet
+            </code>
           </div>
-        ))}
+        </div>
+
+        {/* The fork: a neutral bus from the command out to four tone-coloured
+            drops, one into each card, so the line reaching a card is that card's
+            colour. Drawn only where the cards sit in a single row; stacked
+            layouts carry their tone inside each card instead. */}
+        <div aria-hidden="true" className="relative mx-auto hidden h-9 lg:block">
+          <span className="absolute left-1/2 top-0 h-4 w-px -translate-x-1/2" style={{ background: "var(--border)" }} />
+          <span className="absolute left-[12.5%] right-[12.5%] top-4 h-px" style={{ background: "var(--border)" }} />
+          <div className="absolute inset-x-0 top-4 grid grid-cols-4 gap-4">
+            {OUTCOMES.map((o) => (
+              <span key={o.n} className="mx-auto h-5 w-px" style={{ background: TONE_STATUS[o.tone] }} />
+            ))}
+          </div>
+        </div>
+
+        {/* Small screens skip the drawn fork; the gap keeps the command clear of the cards. */}
+        <div className="h-6 lg:hidden" />
+
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {OUTCOMES.map((outcome) => (
+            <OutcomeCard key={outcome.n} outcome={outcome} />
+          ))}
+        </div>
       </div>
 
       <p className="mt-6 max-w-[64ch] text-body text-secondary">
@@ -242,13 +349,141 @@ function Outcomes() {
   );
 }
 
+function OutcomeCard({ outcome }: { outcome: Outcome }) {
+  const { n, label, tone, glyph, what, stages, meta } = outcome;
+  const status = TONE_STATUS[tone];
+  const tint = TONE_TINT[tone];
+
+  return (
+    <div className="relative flex min-w-0 flex-col overflow-hidden rounded-xl border border-border bg-surface p-5">
+      <div className="flex items-center justify-between">
+        <span className="font-display text-[2.5rem] font-bold leading-none tracking-tight" style={{ color: status }}>
+          {n}
+        </span>
+        <span
+          aria-hidden="true"
+          className="inline-flex h-8 w-8 items-center justify-center rounded-full border text-body leading-none"
+          style={{ borderColor: `color-mix(in srgb, ${status} 60%, transparent)`, color: tint }}
+        >
+          {glyph}
+        </span>
+      </div>
+
+      <p className="mt-3 font-mono text-small font-semibold uppercase tracking-wide" style={{ color: tint }}>
+        {label}
+      </p>
+      <p className="mt-2 min-h-[3.5rem] text-small leading-relaxed text-muted">{what}</p>
+
+      <ol className="mt-4 flex flex-col">
+        {stages.map((state, i) => (
+          <StageRow
+            key={STAGE_NAMES[i]}
+            index={i}
+            state={state}
+            next={stages[i + 1]}
+            tone={tone}
+            last={i === stages.length - 1}
+          />
+        ))}
+      </ol>
+
+      <dl className="mt-5 flex flex-col gap-1.5 border-t border-border-soft pt-4">
+        {meta.map(({ k, v, tone: valueTone }) => (
+          <div key={k} className="flex items-baseline justify-between gap-3">
+            <dt className="text-micro font-medium uppercase tracking-wider text-muted-dim">{k}</dt>
+            <dd
+              className="truncate font-mono text-small"
+              style={{ color: valueTone ? TONE_TINT[valueTone] : "var(--secondary)" }}
+            >
+              {v}
+            </dd>
+          </div>
+        ))}
+      </dl>
+    </div>
+  );
+}
+
+/**
+ * One stage in a card's trace. The node says whether the deploy cleared, died,
+ * or never reached this stage; the segment below it carries the trace to the
+ * next node — solid where the run travelled, dashed and grey where it stopped,
+ * so a failed deploy shows the break and "not submitted" ends almost before it
+ * begins.
+ */
+function StageRow({
+  index,
+  state,
+  next,
+  tone,
+  last,
+}: {
+  index: number;
+  state: StageState;
+  next: StageState | undefined;
+  tone: Tone;
+  last: boolean;
+}) {
+  const reached = state !== "na";
+  const label = reached
+    ? `${STAGE_NAMES[index]} ${state === "ok" ? STAGE_OK[index] : STAGE_FAIL[index]}`
+    : `${STAGE_NAMES[index]} n/a`;
+
+  const nodeColor = state === "ok" ? "var(--status-success)" : state === "fail" ? TONE_STATUS[tone] : "var(--border)";
+  const glyph = state === "ok" ? "✓" : state === "fail" ? "✕" : "";
+
+  // The segment takes the colour of where it is going: green into a cleared
+  // stage, the card's tone into the stage that failed, dashed grey into a stage
+  // that never happened.
+  const segmentReaches = next && next !== "na";
+  const segmentColor = next === "ok" ? "var(--status-success)" : next === "fail" ? TONE_STATUS[tone] : null;
+
+  return (
+    <li className="relative flex h-7 items-center gap-2.5">
+      {!last &&
+        (segmentReaches ? (
+          <span
+            aria-hidden="true"
+            className="absolute left-[8px] top-[14px] h-7 w-px"
+            style={{ background: segmentColor ?? "var(--border)" }}
+          />
+        ) : (
+          <span
+            aria-hidden="true"
+            className="absolute left-[8px] top-[14px] h-7 w-0 border-l border-dashed"
+            style={{ borderColor: "var(--border)" }}
+          />
+        ))}
+
+      <span
+        aria-hidden="true"
+        className="relative z-10 inline-flex h-[17px] w-[17px] shrink-0 items-center justify-center rounded-full border-2 text-[10px] leading-none"
+        style={{
+          borderColor: nodeColor,
+          background: "var(--surface)",
+          color: state === "ok" ? "var(--tint-success)" : state === "fail" ? TONE_TINT[tone] : "transparent",
+        }}
+      >
+        {glyph}
+      </span>
+
+      <span
+        className="min-w-0 truncate text-small"
+        style={{ color: reached ? "var(--secondary)" : "var(--muted-dim)" }}
+      >
+        {label}
+      </span>
+    </li>
+  );
+}
+
 /* -------------------------------------------------------------------------- */
 
 function Wrapper() {
   return (
     <Band id="wrapper" eyebrow="Adoption" title="A wrapper, not a rewrite." bordered>
       <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
-        <div className="flex flex-col gap-5">
+        <div className="flex min-w-0 flex-col gap-5">
           <p className="max-w-[52ch] text-body text-muted">
             Six characters in front of a command you already run. Same stdout, same stderr, same
             exit code — indistinguishable to anything downstream, including{" "}
@@ -287,7 +522,7 @@ function Gate() {
     <Band id="gate" eyebrow="Upgrades" title="Refuse the upgrade, on-chain." bordered>
       <div className="grid gap-10 lg:grid-cols-2 lg:items-center">
         <ApprovalMock />
-        <div className="flex flex-col gap-5 lg:order-first">
+        <div className="flex min-w-0 flex-col gap-5 lg:order-first">
           <p className="max-w-[52ch] text-body text-muted">
             A contract upgrade is the one deploy you cannot take back. The Gate puts an
             m-of-n approval in front of it — proposed, reviewed, and refused or accepted on the
@@ -309,7 +544,7 @@ function Gate() {
 
 function ApprovalMock() {
   return (
-    <div className="rounded-xl border border-border bg-surface p-6">
+    <div className="min-w-0 rounded-xl border border-border bg-surface p-6">
       <div className="flex items-center justify-between">
         <p className="text-small font-semibold text-foreground">Proposal #7 — upgrade escrow</p>
         <span className="inline-flex items-center gap-1.5 rounded-full border border-[var(--edge-warning)] px-2 py-0.5 text-micro font-medium uppercase tracking-wider text-[var(--tint-warning)]">

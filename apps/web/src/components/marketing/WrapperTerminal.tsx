@@ -53,7 +53,7 @@ export function WrapperTerminal() {
   return (
     <div
       ref={ref}
-      className={`overflow-hidden rounded-xl border border-border bg-chrome ${inView ? "is-playing" : ""}`}
+      className={`min-w-0 overflow-hidden rounded-xl border border-border bg-chrome ${inView ? "is-playing" : ""}`}
     >
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <span aria-hidden="true" className="flex gap-1.5">
