@@ -1,6 +1,8 @@
 <p align="center">
-  <img src="./materials/logo-light.png" alt="Derail" width="200" />
+  <img src="./materials/icon.png" alt="Derail" width="150" />
 </p>
+
+<h1 align="center">Derail</h1>
 
 <p align="center">
   <strong>Deploy observability for Soroban — and a gate for the deploys that shouldn't land.</strong>
