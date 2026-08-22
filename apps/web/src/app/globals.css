@@ -289,3 +289,67 @@ body {
   background-clip: text;
   color: transparent;
 }
+
+/* ---- Marketing mocks that narrate a deploy (§19) ----
+   The two front-door mocks don't just sit there — they play the run through
+   once, in order, as the reader arrives: the hero timeline advances down the
+   rail, the wrapper terminal streams its log lines. This is the sanctioned
+   "staggered entrance" applied to a sequence rather than a page load; still a
+   single pass, nothing loops.
+
+   Every hidden-start state lives inside the no-preference block below, so a
+   reader with reduced-motion — or with JavaScript off, since `.is-playing` is
+   only ever added on the client — keeps the fully rendered mock. The reveal is
+   armed by adding `.is-playing` to the container; each child carries its own
+   `--stage-delay` / `--rail-delay` / `--line-delay`, and `both` fill holds it
+   hidden until that beat arrives. */
+@media (prefers-reduced-motion: no-preference) {
+  @keyframes derail-stage-in {
+    from {
+      opacity: 0;
+      transform: translateY(6px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  /* The rail between two stages, drawn top-down — the track reaching the next
+     node just as it lands (§21.01). */
+  @keyframes derail-rail-draw {
+    from {
+      transform: scaleY(0);
+    }
+    to {
+      transform: scaleY(1);
+    }
+  }
+
+  @keyframes derail-line-in {
+    from {
+      opacity: 0;
+      transform: translateY(3px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .is-playing .deploy-stage {
+    animation: derail-stage-in 460ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--stage-delay, 0ms);
+  }
+
+  .is-playing .deploy-rail {
+    transform-origin: top;
+    animation: derail-rail-draw 420ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    animation-delay: var(--rail-delay, 0ms);
+  }
+
+  .is-playing .term-line {
+    animation: derail-line-in 220ms ease-out both;
+    animation-delay: var(--line-delay, 0ms);
+  }
+}
