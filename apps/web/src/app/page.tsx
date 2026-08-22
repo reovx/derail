@@ -2,6 +2,7 @@ import Link from "next/link";
 
 import { Mark, Wordmark } from "@/components/brand/Mark";
 import { MarketingNav } from "@/components/marketing/MarketingNav";
+import { WrapperTerminal } from "@/components/marketing/WrapperTerminal";
 import { CommandBlock } from "@/components/ui/CommandBlock";
 import { GateIcon, IdentitiesIcon, DeploymentsIcon } from "@/components/ui/icons";
 
@@ -103,16 +104,23 @@ function Hero() {
  * opaque transaction. This is what the console shows, standing in for a
  * screenshot so it stays honest to the real thing.
  */
-const STAGES: { label: string; detail: string; tone: string; time: string }[] = [
-  { label: "Submitted", detail: "derail -- stellar contract deploy", tone: "neutral", time: "0ms" },
-  { label: "Simulation", detail: "Passed · 3 auth entries, footprint bounded", tone: "success", time: "912ms" },
-  { label: "Sent to chain", detail: "Tx 4b1c…e9a2 · sequence consumed", tone: "running", time: "1.4s" },
-  { label: "Chain result", detail: "Rejected — tx_insufficient_fee · fee charged anyway", tone: "failure", time: "5.9s" },
+// `delay` is when each stage lands as the timeline plays down the rail — the
+// beats trace the real durations on the right (912ms, 1.4s, 5.9s), compressed so
+// the whole run reads in about two seconds.
+const STAGES: { label: string; detail: string; tone: string; time: string; delay: number }[] = [
+  { label: "Submitted", detail: "derail -- stellar contract deploy", tone: "neutral", time: "0ms", delay: 0 },
+  { label: "Simulation", detail: "Passed · 3 auth entries, footprint bounded", tone: "success", time: "912ms", delay: 700 },
+  { label: "Sent to chain", detail: "Tx 4b1c…e9a2 · sequence consumed", tone: "running", time: "1.4s", delay: 1100 },
+  { label: "Chain result", detail: "Rejected — tx_insufficient_fee · fee charged anyway", tone: "failure", time: "5.9s", delay: 1900 },
 ];
 
 function TimelinePreview() {
   return (
-    <div className="mx-auto max-w-3xl overflow-hidden rounded-xl border border-border bg-chrome shadow-2xl shadow-black/40">
+    // `is-playing` arms the reveal — the hero sits above the fold, so the run
+    // plays down the rail on load (§19). It stays a single, static class: the
+    // sequence never repeats, and it degrades to the finished timeline under
+    // reduced motion, where the animation rules in globals.css don't apply.
+    <div className="is-playing mx-auto max-w-3xl overflow-hidden rounded-xl border border-border bg-chrome shadow-2xl shadow-black/40">
       <div className="flex items-center gap-2 border-b border-border px-4 py-3">
         <span aria-hidden="true" className="flex gap-1.5">
           <span className="h-2.5 w-2.5 rounded-full bg-failure/70" />
@@ -129,24 +137,28 @@ function TimelinePreview() {
       <ol className="flex flex-col p-5 sm:p-6">
         {STAGES.map((stage, i) => {
           const last = i === STAGES.length - 1;
+          const stageVars = { "--stage-delay": `${stage.delay}ms` } as React.CSSProperties;
           return (
             <li key={stage.label} className="relative flex gap-4 pb-6 last:pb-0">
               {!last && (
+                // Drawn just after this node lands, so the track reaches the
+                // next stage right as it appears.
                 <span
                   aria-hidden="true"
-                  className="absolute left-[6px] top-4 h-full w-px"
-                  style={{ background: "var(--border)" }}
+                  className="deploy-rail absolute left-[6px] top-4 h-full w-px"
+                  style={{ background: "var(--border)", "--rail-delay": `${stage.delay + 150}ms` } as React.CSSProperties}
                 />
               )}
               <span
                 aria-hidden="true"
-                className="relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2"
+                className="deploy-stage relative mt-1 h-3.5 w-3.5 shrink-0 rounded-full border-2"
                 style={{
                   borderColor: `var(--status-${stage.tone})`,
                   background: stage.tone === "failure" ? "var(--status-failure)" : "var(--chrome)",
+                  ...stageVars,
                 }}
               />
-              <div className="min-w-0 flex-1">
+              <div className="deploy-stage min-w-0 flex-1" style={stageVars}>
                 <div className="flex flex-wrap items-baseline justify-between gap-x-3">
                   <p
                     className="text-small font-medium"
@@ -262,48 +274,9 @@ function Wrapper() {
           </ul>
         </div>
 
-        <TerminalMock />
+        <WrapperTerminal />
       </div>
     </Band>
-  );
-}
-
-function TerminalMock() {
-  return (
-    <div className="overflow-hidden rounded-xl border border-border bg-chrome">
-      <div className="flex items-center gap-2 border-b border-border px-4 py-3">
-        <span aria-hidden="true" className="flex gap-1.5">
-          <span className="h-2.5 w-2.5 rounded-full bg-failure/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-warning/70" />
-          <span className="h-2.5 w-2.5 rounded-full bg-success/70" />
-        </span>
-        <span className="ml-2 font-mono text-small text-muted">zsh — deploy.sh</span>
-      </div>
-      <pre className="overflow-x-auto p-5 font-mono text-small leading-relaxed">
-        <code>
-          <span className="text-muted-dim">$ </span>
-          <span className="text-secondary">derail -- stellar contract deploy \</span>
-          {"\n"}
-          <span className="text-secondary">    --wasm ./escrow.wasm --network testnet</span>
-          {"\n\n"}
-          <span className="text-muted">ℹ recording run · 4b1c…e9a2</span>
-          {"\n"}
-          <span className="text-muted">→ simulating…</span>
-          {"\n"}
-          <span style={{ color: "var(--tint-success)" }}>✓ simulation passed (912ms)</span>
-          {"\n"}
-          <span className="text-muted">→ submitting to network…</span>
-          {"\n"}
-          <span style={{ color: "var(--tint-failure)" }}>✗ chain rejected · tx_insufficient_fee</span>
-          {"\n"}
-          <span className="text-muted-dim"># fee charged. contract never created.</span>
-          {"\n"}
-          <span className="text-muted-dim">$ echo $?</span>
-          {"\n"}
-          <span className="text-secondary">1</span>
-        </code>
-      </pre>
-    </div>
   );
 }
 
