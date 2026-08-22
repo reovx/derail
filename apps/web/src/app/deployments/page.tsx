@@ -7,6 +7,8 @@ import { listRuns, runFacets, runTally } from "@/lib/runs/queries";
 /** Every visit reads the current state of the timeline; nothing here is cacheable. */
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Deployments" };
+
 /**
  * Every wrapped command — `SPEC-UI-UX.md` §5.2.
  *

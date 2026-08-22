@@ -16,6 +16,14 @@ import { getRun } from "@/lib/runs/queries";
 
 export const dynamic = "force-dynamic";
 
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const run = await getRun(id).catch(() => null);
+  if (!run) return { title: "Deployment" };
+  const fn = functionName(run.argv);
+  return { title: fn ? `${run.command} · ${fn}` : run.command };
+}
+
 export default async function RunDetailPage({ params }: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const run = await getRun(id).catch(() => null);

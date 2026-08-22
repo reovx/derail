@@ -1,11 +1,23 @@
 /**
  * The Derail symbol — SPEC-DESIGN-LANGUAGE.md §3.
  *
- * rail → narrowing → twisting → helix → fragmentation, as one continuous
- * object. The rail carries `currentColor` so the mark inherits its surface;
- * the helix and fragments are always brand red, which is what makes the
- * "controlled failure" read at small sizes (§5.3).
+ * A faithful vector trace of the master logo (`materials/png_icon_rail.png`):
+ * the track rises from parallel sleepers, twists into a helix, and breaks into
+ * fragments at the top-right. The body carries `currentColor` so the mark
+ * inherits its surface; the fragments are the one part that separates cleanly
+ * from the body, so they take brand red — which is what makes the "controlled
+ * failure" read at small sizes (§5.3). `mono` renders the whole mark in
+ * `currentColor` (single-color contexts, faithful to the monochrome master).
  */
+
+// Body + sleeper/negative-space holes — evenodd punches the gaps through.
+const BODY_PATH =
+  "M18.25 3.12 17.06 3.63 15.79 4.48 14.6 5.76 13.75 7.63 13.58 8.65 13.75 11.03 14.51 12.81 15.87 14.68 14.51 15.28 13.07 16.21 12.13 17.15 11.45 18.59 10.77 18.59 10.52 18.85 10.01 19.95 11.03 20.04 11.03 20.29 10.09 22.16 9.33 22.33 8.73 22.25 7.88 23.52 7.8 23.86 9.07 23.86 9.07 24.12 7.54 27.09 7.37 27.26 5.59 27.26 4.4 29.05 4.48 29.22 6.27 29.22 5.5 31 7.88 31 10.77 24.46 12.73 20.55 12.98 19.95 13.07 19.02 13.49 18.17 15.11 16.81 18.51 15.28 20.72 14 21.91 13.07 22.59 12.22 23.1 12.22 23.18 11.96 23.44 11.88 23.27 11.28 23.95 10.77 23.78 10.35 22.93 10.26 22.08 9.84 20.89 10.86 21.23 11.37 19.1 13.15 17.57 13.92 17.32 13.92 16.64 13.15 16.55 12.73 17.57 13.07 17.83 12.47 15.62 11.2 15.28 10.18 15.28 8.82 16.81 9.58 18 10.43 18.42 10.52 18.85 9.41 15.7 7.37 16.21 6.35 17.15 5.42 19.36 4.31 19.36 4.06 18.93 3.72 18.76 3.29Z M18.76 15.96 18.51 16.21 17.57 16.47 17.49 16.72 18.51 18.25 19.1 20.29 21.4 24.8 24.12 30.92 26.5 31 25.73 29.22 27.6 29.22 27.6 28.88 26.58 27.26 24.54 27.18 22.93 24.12 23.01 23.86 24.29 23.86 24.2 23.52 23.35 22.25 21.91 22.16 20.97 20.29 20.97 20.04 21.99 19.95 21.65 19.19 21.31 18.68 20.38 18.59 20.12 17.66 19.53 16.64 19.02 15.96Z M10.86 27.26 10.01 29.05 10.09 29.22 21.99 29.22 21.14 27.26Z M13.66 22.25 12.98 22.33 12.39 23.86 19.53 23.86 18.85 22.25Z M14.43 18.59 14.26 18.68 14 19.87 18 19.87 17.49 18.59Z";
+
+// The four fragments breaking off the top-right.
+const FRAGMENT_PATH =
+  "M25.48 5.08 23.78 5.5 23.86 6.01 24.8 7.37 25.39 7.37 25.65 7.12 25.82 6.18 26.24 5.42 26.07 5.08Z M24.97 1 24.88 1.34 25.56 2.95 26.07 3.12 27.18 1.59 27.26 1.08Z M21.14 6.52 20.72 6.78 20.72 7.03 21.23 8.65 21.57 8.65 23.01 7.88 22.67 7.37Z M22.08 2.19 20.63 2.87 20.55 3.21 21.91 4.06 22.42 4.14 22.59 3.97 22.59 2.44 22.42 2.19Z";
+
 export function Mark({
   size = 28,
   mono = false,
@@ -22,37 +34,13 @@ export function Mark({
       width={size}
       height={size}
       viewBox="0 0 32 32"
-      fill="none"
       className={className}
       aria-hidden="true"
-      strokeLinecap="round"
-      strokeLinejoin="round"
+      fillRule="evenodd"
+      clipRule="evenodd"
     >
-      {/* Sleepers — widest at the base, shrinking into the transformation zone */}
-      <g stroke="currentColor" strokeWidth="2">
-        <path d="M6.6 28.4h18.8" />
-        <path d="M8.2 23.2h15.6" />
-        <path d="M9.8 18.2h12.4" />
-      </g>
-
-      {/* Rails — parallel at the base, converging and beginning to twist */}
-      <g stroke="currentColor" strokeWidth="2.2">
-        <path d="M9.1 31V19.4C9.1 16.6 10.6 14.6 13.2 13.4" />
-        <path d="M22.9 31V19.4c0-2.8-1.5-4.8-4.1-6" />
-      </g>
-
-      {/* Helix — the rails, still one object, crossing over each other */}
-      <g stroke={accent} strokeWidth="2.2">
-        <path d="M13.2 13.4C10.4 12 9.9 8.4 12.6 6.4c2.4-1.8 5.8-.9 7 1.3" />
-        <path d="M18.8 13.4c2.6-1.2 3.4-3.7 2.6-5.9" />
-      </g>
-
-      {/* Fragmentation — few, geometric, following the direction of the break */}
-      <g fill={accent}>
-        <path d="M22.9 4.2 26 5.5l-2.6 1.4z" />
-        <path d="M26.4 1.5 29 2.6l-2.2 1.2z" />
-        <path d="M21.6 9.4l2.4 1-2 1.1z" />
-      </g>
+      <path d={BODY_PATH} fill="currentColor" />
+      <path d={FRAGMENT_PATH} fill={accent} />
     </svg>
   );
 }

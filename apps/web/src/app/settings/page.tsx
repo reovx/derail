@@ -8,6 +8,8 @@ import { countRuns, ProjectNotConfiguredError } from "@/lib/runs/queries";
 
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Settings" };
+
 /**
  * How this project is wired up — `SPEC-UI-UX.md` §5.7.
  *

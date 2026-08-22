@@ -37,7 +37,7 @@ export default function NotFound() {
             Every proposal
           </Link>
           <Link
-            href="/"
+            href="/overview"
             className="text-body text-muted underline underline-offset-2 transition-colors hover:text-foreground"
           >
             Overview

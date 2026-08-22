@@ -74,6 +74,7 @@ export function Topbar({ onOpenRail }: { onOpenRail: () => void }) {
 }
 
 const SECTIONS: Record<string, string> = {
+  overview: "Overview",
   deployments: "Deployments",
   gate: "Gate",
   identities: "Identities",

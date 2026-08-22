@@ -16,6 +16,13 @@ export const dynamic = "force-dynamic";
  * long as the gate exists. That is the point of the route: a refusal that can
  * be linked in a pull request is worth more than a refusal you have to describe.
  */
+export async function generateMetadata({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
+  const proposalId = Number(id);
+  const label = Number.isInteger(proposalId) && proposalId >= 1 ? `Proposal #${proposalId}` : "Proposal";
+  return { title: label };
+}
+
 export default async function ProposalPage({ params }: { params: Promise<{ id: string }> }) {
   if (!GATE_ID || !TARGET_ID) return <GateNotConfigured />;
 

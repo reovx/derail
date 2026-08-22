@@ -35,7 +35,7 @@ import { useWallet } from "@/lib/wallet/WalletProvider";
  */
 
 const PRIMARY = [
-  { href: "/", label: "Overview", Icon: OverviewIcon },
+  { href: "/overview", label: "Overview", Icon: OverviewIcon },
   { href: "/deployments", label: "Deployments", Icon: DeploymentsIcon },
   { href: "/gate", label: "Gate", Icon: GateIcon },
   { href: "/identities", label: "Identities", Icon: IdentitiesIcon },
@@ -54,7 +54,7 @@ export function Sidebar({ onNavigate }: { onNavigate?: () => void }) {
           a chevron that opens nothing. */}
       <div className="flex h-[var(--topbar-h)] shrink-0 items-center gap-2.5 border-b border-border px-4">
         <Link
-          href="/"
+          href="/overview"
           onClick={onNavigate}
           className="flex min-w-0 items-center gap-2.5"
           aria-label="Derail — overview"
@@ -113,8 +113,8 @@ function NavItem({
   onNavigate?: () => void;
   badge?: number;
 }) {
-  // "/" is the overview only. Everything else owns its subtree.
-  const active = href === "/" ? pathname === "/" : pathname.startsWith(href);
+  // Each section owns its own subtree; exact match handles the leaf routes.
+  const active = pathname === href || pathname.startsWith(`${href}/`);
 
   return (
     <li>

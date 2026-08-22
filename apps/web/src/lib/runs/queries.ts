@@ -1,5 +1,7 @@
 import "server-only";
 
+import { cache } from "react";
+
 import { supabaseAdmin } from "@/lib/supabase/admin";
 import { DEFAULT_RUN_QUERY, TALLY_STATUSES, pageCount, type RunQuery } from "./filters";
 import { runPredicates, type RunPredicate } from "./postgrest";
@@ -317,7 +319,12 @@ function rank(counts: Map<string, number>): string[] {
     .map(([value]) => value);
 }
 
-export async function getRun(id: string): Promise<RunDetail | null> {
+/**
+ * `cache` dedupes the read within a request, so the detail page and its
+ * `generateMetadata` (which titles the tab from `run.command`) share one round
+ * trip rather than fetching the same run twice.
+ */
+export const getRun = cache(async (id: string): Promise<RunDetail | null> => {
   const supabase = supabaseAdmin();
 
   const { data: run, error } = await supabase
@@ -339,4 +346,4 @@ export async function getRun(id: string): Promise<RunDetail | null> {
   if (txError) throw new Error(txError.message);
 
   return { ...run, transactions: transactions ?? [] };
-}
+});

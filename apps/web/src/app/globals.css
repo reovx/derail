@@ -242,4 +242,50 @@ body {
   .animate-scrim-in {
     animation: derail-scrim-in 200ms ease-out both;
   }
+
+  /* Marketing only (§19). The front door is allowed the one entrance the
+     product never gets: a staggered reveal on load. Nothing loops. */
+  @keyframes derail-rise {
+    from {
+      opacity: 0;
+      transform: translateY(14px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
+
+  .animate-rise {
+    animation: derail-rise 620ms cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+}
+
+/* ---- Marketing surfaces — SPEC-DESIGN-LANGUAGE §19 ----
+   Expressive versions of the identity that the product UI never uses:
+   a faint engineering grid, the brand's red glow, and the red gradient. */
+
+.marketing-grid {
+  background-image:
+    linear-gradient(to right, var(--border-soft) 1px, transparent 1px),
+    linear-gradient(to bottom, var(--border-soft) 1px, transparent 1px);
+  background-size: 64px 64px;
+  background-position: center top;
+  /* Fades out before it reaches the content, so it reads as texture, not table. */
+  -webkit-mask-image: radial-gradient(120% 80% at 50% 0%, #000 25%, transparent 75%);
+  mask-image: radial-gradient(120% 80% at 50% 0%, #000 25%, transparent 75%);
+}
+
+.marketing-glow {
+  background:
+    radial-gradient(60% 45% at 50% 0%, rgba(230, 57, 70, 0.16), transparent 70%),
+    radial-gradient(40% 30% at 78% 8%, rgba(255, 77, 79, 0.1), transparent 70%);
+}
+
+/* The one sanctioned gradient: #FF4D4F → #B71C1C (§5.5), on a keyword only. */
+.text-brand-gradient {
+  background: linear-gradient(100deg, var(--derail-red-light), var(--derail-red) 45%, var(--derail-red-dark));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
 }

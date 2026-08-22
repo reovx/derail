@@ -7,6 +7,8 @@ import { GateNotConfigured } from "./GateNotConfigured";
 /** The ledger moves every few seconds; nothing on this page is cacheable. */
 export const dynamic = "force-dynamic";
 
+export const metadata = { title: "Gate" };
+
 export default async function Gate() {
   if (!GATE_ID || !TARGET_ID) return <GateNotConfigured />;
 
