@@ -187,14 +187,23 @@ function classify(error: unknown): GateFailure {
   return { reason: "unknown", message: message || "The transaction did not go through." };
 }
 
-function requireIds() {
-  if (!GATE_ID || !TARGET_ID) {
+/**
+ * The gate/target the action runs against. Defaults to the pair pinned in the
+ * environment; the public demo target (`SPEC-DEMO-GATE.md`) passes its own so
+ * the same signed actions drive it without a second copy of them.
+ */
+export type GateRef = { gateId: string; targetId: string };
+
+function requireIds(ref?: Partial<GateRef>) {
+  const gateId = ref?.gateId ?? GATE_ID;
+  const targetId = ref?.targetId ?? TARGET_ID;
+  if (!gateId || !targetId) {
     throw new GateActionError({
       reason: "not_registered",
       message: "No gate is configured for this app.",
     });
   }
-  return { gateId: GATE_ID, targetId: TARGET_ID };
+  return { gateId, targetId };
 }
 
 function client(gateId: string, address: string, wallet: WalletAdapter) {
@@ -293,8 +302,9 @@ export function approve(
   { proposalId, approver }: { proposalId: number; approver: string },
   wallet: WalletAdapter,
   onPhase: (phase: GatePhase) => void = noop,
+  ref?: Partial<GateRef>,
 ): Promise<GateResult> {
-  const { gateId, targetId } = requireIds();
+  const { gateId, targetId } = requireIds(ref);
   const gate = client(gateId, approver, wallet);
 
   return run(() => gate.approve({ target: targetId, proposal_id: proposalId, approver }), onPhase);
@@ -304,8 +314,9 @@ export function reject(
   { proposalId, approver }: { proposalId: number; approver: string },
   wallet: WalletAdapter,
   onPhase: (phase: GatePhase) => void = noop,
+  ref?: Partial<GateRef>,
 ): Promise<GateResult> {
-  const { gateId, targetId } = requireIds();
+  const { gateId, targetId } = requireIds(ref);
   const gate = client(gateId, approver, wallet);
 
   return run(() => gate.reject({ target: targetId, proposal_id: proposalId, approver }), onPhase);
@@ -322,8 +333,9 @@ export function execute(
   { proposalId, from }: { proposalId: number; from: string },
   wallet: WalletAdapter,
   onPhase: (phase: GatePhase) => void = noop,
+  ref?: Partial<GateRef>,
 ): Promise<GateResult> {
-  const { gateId, targetId } = requireIds();
+  const { gateId, targetId } = requireIds(ref);
   const gate = client(gateId, from, wallet);
 
   return run(() => gate.execute({ target: targetId, proposal_id: proposalId }), onPhase);

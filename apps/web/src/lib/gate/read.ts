@@ -58,9 +58,14 @@ export class GateNotConfiguredError extends Error {
   }
 }
 
-function requireIds(): { gateId: string; targetId: string } {
-  if (!GATE_ID || !TARGET_ID) throw new GateNotConfiguredError();
-  return { gateId: GATE_ID, targetId: TARGET_ID };
+/** A gate and one of the targets it governs. */
+export type GateRef = { gateId: string; targetId: string };
+
+function requireIds(ref?: Partial<GateRef>): GateRef {
+  const gateId = ref?.gateId ?? GATE_ID;
+  const targetId = ref?.targetId ?? TARGET_ID;
+  if (!gateId || !targetId) throw new GateNotConfiguredError();
+  return { gateId, targetId };
 }
 
 function hex(value: unknown): string {
@@ -167,7 +172,27 @@ function toProposal(raw: RawProposal, config: TargetConfig, currentLedger: numbe
  * until it has been read.
  */
 export async function readGateState(eventLimit = 50): Promise<GateState> {
-  const { gateId, targetId } = requireIds();
+  return readGateStateFor(requireIds(), eventLimit);
+}
+
+/** Convert raw contract storage into a `TargetConfig`. */
+function toConfig(rawConfig: unknown): TargetConfig {
+  const raw = rawConfig as { approvers?: string[]; threshold?: number; admin?: string };
+  return {
+    approvers: raw.approvers ?? [],
+    threshold: Number(raw.threshold ?? 0),
+    admin: String(raw.admin ?? ""),
+  };
+}
+
+/**
+ * The whole review screen for an explicit gate/target, rather than the single
+ * pair pinned in the environment. The public demo target
+ * (`SPEC-DEMO-GATE.md`) is read through this, and `readGateState()` is the same
+ * call bound to the configured pair.
+ */
+export async function readGateStateFor(ref: GateRef, eventLimit = 50): Promise<GateState> {
+  const { gateId, targetId } = ref;
   const target = addressScVal(targetId);
 
   const [[rawConfig, rawCount], latest] = await Promise.all([
@@ -181,12 +206,7 @@ export async function readGateState(eventLimit = 50): Promise<GateState> {
     );
   }
 
-  const raw = rawConfig as { approvers?: string[]; threshold?: number; admin?: string };
-  const config: TargetConfig = {
-    approvers: raw.approvers ?? [],
-    threshold: Number(raw.threshold ?? 0),
-    admin: String(raw.admin ?? ""),
-  };
+  const config = toConfig(rawConfig);
 
   const count = Number(rawCount ?? 0);
   // Newest first, which is the order a reviewer wants them in.
@@ -197,7 +217,7 @@ export async function readGateState(eventLimit = 50): Promise<GateState> {
       gateId,
       ids.map((id) => dataKey("Proposal", target, u32ScVal(id))),
     ),
-    listEvents(eventLimit).catch(() => [] as GateEvent[]),
+    listEvents(eventLimit, gateId).catch(() => [] as GateEvent[]),
   ]);
 
   const proposals = rawProposals
@@ -207,6 +227,25 @@ export async function readGateState(eventLimit = 50): Promise<GateState> {
   return { config, proposals, events, ledger: latest.sequence };
 }
 
+/** Just a target's approver set and threshold — one round trip, no proposals. */
+export async function readTargetConfigFor(ref: GateRef): Promise<TargetConfig> {
+  const [rawConfig] = await readContractData(ref.gateId, [
+    dataKey("Target", addressScVal(ref.targetId)),
+  ]);
+  if (!rawConfig) {
+    throw new Error("This gate has no configuration for that target.");
+  }
+  return toConfig(rawConfig);
+}
+
+/** The target's proposal counter — the id of the most recently created proposal. */
+export async function readProposalCountFor(ref: GateRef): Promise<number> {
+  const [rawCount] = await readContractData(ref.gateId, [
+    dataKey("ProposalCount", addressScVal(ref.targetId)),
+  ]);
+  return Number(rawCount ?? 0);
+}
+
 /**
  * Recent gate activity, straight off the ledger.
  *
@@ -214,8 +253,9 @@ export async function readGateState(eventLimit = 50): Promise<GateState> {
  * context, and the proposals are the content. `readGateState` catches this for
  * that reason.
  */
-export async function listEvents(limit = 50): Promise<GateEvent[]> {
-  const { gateId } = requireIds();
+export async function listEvents(limit = 50, gateIdOverride?: string): Promise<GateEvent[]> {
+  const gateId = gateIdOverride ?? GATE_ID;
+  if (!gateId) throw new GateNotConfiguredError();
 
   const latest = await getLatestLedger();
   const raw = await getEvents({

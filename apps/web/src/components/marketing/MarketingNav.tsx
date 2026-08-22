@@ -44,6 +44,12 @@ export function MarketingNav() {
 
         <div className="ml-auto flex items-center gap-2 md:ml-0">
           <Link
+            href="/demo"
+            className="hidden h-9 items-center rounded-[8px] px-3 text-small font-medium text-secondary transition-colors hover:text-foreground sm:inline-flex"
+          >
+            Try the gate
+          </Link>
+          <Link
             href="/overview"
             className="hidden h-9 items-center rounded-[8px] px-3 text-small font-medium text-secondary transition-colors hover:text-foreground sm:inline-flex"
           >
