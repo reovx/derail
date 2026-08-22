@@ -25,7 +25,7 @@ out="$here/captures/$slug"
 mkdir -p "$out"
 
 # The rustup toolchain must win over the Chocolatey one; see FINDINGS.md.
-export PATH="/c/Users/<you>/.cargo/bin:$PATH"
+export PATH="$HOME/.cargo/bin:$PATH"
 
 # Minimal JSON string escaper (backslash, quote, control chars).
 esc() { printf '%s' "$1" | sed -e 's/\\/\\\\/g' -e 's/"/\\"/g' | tr -d '\r\n'; }

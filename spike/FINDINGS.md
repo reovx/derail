@@ -40,7 +40,7 @@ fails with ``can't find crate for `core` ``, because `rustup target add` install
 into a toolchain PATH never reaches. The error text tells you to run the command
 you already ran, which is a fine way to lose an afternoon.
 
-Fix, and what `capture.sh` does: `export PATH="/c/Users/<you>/.cargo/bin:$PATH"`.
+Fix, and what `capture.sh` does: `export PATH="$HOME/.cargo/bin:$PATH"`.
 
 Worth deciding before the wrapper ships whether to remove the Chocolatey Rust
 outright — a user hitting this will blame Derail.
