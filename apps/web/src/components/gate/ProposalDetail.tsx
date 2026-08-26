@@ -42,10 +42,15 @@ export function ProposalDetail({
   initial,
   proposalId,
   targetId,
+  backHref = "/gate",
+  backLabel = "Gate",
 }: {
   initial: GateState | null;
   proposalId: number;
   targetId: string;
+  /** Where "back" returns to — the gate by default, the queue when opened from it. */
+  backHref?: string;
+  backLabel?: string;
 }) {
   const { state: live, status, error, refresh } = useGateLive();
   // Read before any early return: the branches below change between renders,
@@ -73,8 +78,8 @@ export function ProposalDetail({
       <Notice tone="neutral" title={`No proposal #${proposalId} on this target`}>
         This gate holds {state.proposals.length}{" "}
         {state.proposals.length === 1 ? "proposal" : "proposals"}.{" "}
-        <Link href="/gate" className="text-secondary underline underline-offset-2">
-          Back to the gate
+        <Link href={backHref} className="text-secondary underline underline-offset-2">
+          Back to the {backLabel.toLowerCase()}
         </Link>
         .
       </Notice>
@@ -94,10 +99,10 @@ export function ProposalDetail({
 
       <header className="flex flex-col gap-3 border-b border-border pb-5">
         <Link
-          href="/gate"
+          href={backHref}
           className="w-fit text-small text-muted transition-colors hover:text-foreground"
         >
-          ← Gate
+          ← {backLabel}
         </Link>
 
         <div className="flex flex-wrap items-center gap-3">

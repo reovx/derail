@@ -231,6 +231,38 @@ export async function readGateStateFor(ref: GateRef, eventLimit = 50): Promise<G
   return { config, proposals, events, ledger: latest.sequence };
 }
 
+/**
+ * Every configured service's gate state at once — the cross-service queue.
+ *
+ * One service failing to read must not empty the whole queue, so each is
+ * resolved independently and a failure becomes an entry with a null state and
+ * the error, rather than a rejected promise that takes the others down with it.
+ */
+export type ServiceState = {
+  targetId: string;
+  state: GateState | null;
+  error: string | null;
+};
+
+export async function readServiceStates(
+  refs: GateRef[],
+  eventLimit = 20,
+): Promise<ServiceState[]> {
+  return Promise.all(
+    refs.map(async (ref): Promise<ServiceState> => {
+      try {
+        return { targetId: ref.targetId, state: await readGateStateFor(ref, eventLimit), error: null };
+      } catch (caught) {
+        return {
+          targetId: ref.targetId,
+          state: null,
+          error: caught instanceof Error ? caught.message : "Could not read this service.",
+        };
+      }
+    }),
+  );
+}
+
 /** Just a target's approver set and threshold — one round trip, no proposals. */
 export async function readTargetConfigFor(ref: GateRef): Promise<TargetConfig> {
   const [rawConfig] = await readContractData(ref.gateId, [

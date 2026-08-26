@@ -10,10 +10,12 @@ import {
   GateIcon,
   IdentitiesIcon,
   OverviewIcon,
+  QueueIcon,
   SettingsIcon,
 } from "@/components/ui/icons";
 import { useGate } from "@/lib/gate/GateProvider";
 import { pendingFor } from "@/lib/gate/presentation";
+import { isMultiService } from "@/lib/gate/services";
 import { NETWORK } from "@/lib/stellar/config";
 import { useWallet } from "@/lib/wallet/WalletProvider";
 
@@ -34,10 +36,14 @@ import { useWallet } from "@/lib/wallet/WalletProvider";
  * colour alone.
  */
 
+// The queue is a cross-service view, so it earns a slot only when the gate
+// governs more than one service. With a single target it would just be a second
+// door to the same list, and the Gate section already is that door.
 const PRIMARY = [
   { href: "/overview", label: "Overview", Icon: OverviewIcon },
   { href: "/deployments", label: "Deployments", Icon: DeploymentsIcon },
   { href: "/gate", label: "Gate", Icon: GateIcon },
+  ...(isMultiService ? [{ href: "/queue", label: "Queue", Icon: QueueIcon }] : []),
   { href: "/identities", label: "Identities", Icon: IdentitiesIcon },
 ] as const;
 

@@ -52,6 +52,17 @@ export function DeploymentsIcon(props: IconProps) {
   );
 }
 
+/** Queue — stacked rows waiting to be worked, one flagged. */
+export function QueueIcon(props: IconProps) {
+  return (
+    <Svg {...props}>
+      <path d="M2.5 4h11" />
+      <path d="M2.5 8h11" />
+      <path d="M2.5 12h7" />
+    </Svg>
+  );
+}
+
 /** Gate — a shield, because the point is what it refuses. */
 export function GateIcon(props: IconProps) {
   return (

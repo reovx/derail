@@ -11,7 +11,7 @@ import {
 } from "react";
 
 import { gateConfigured } from "./config";
-import { readGateState, type GateState } from "./read";
+import { readGateState, readGateStateFor, type GateRef, type GateState } from "./read";
 
 /**
  * One reader of the gate, for the whole app — `SPEC-UI-UX.md` §3.2.
@@ -46,11 +46,24 @@ type GateContextValue = {
 
 const GateContext = createContext<GateContextValue | null>(null);
 
-export function GateProvider({ children }: { children: React.ReactNode }) {
+/**
+ * `gateRef` scopes the provider to one service. Omitted, it reads the pinned
+ * pair from the environment — the app-wide default, and the only reader the nav
+ * badge needs. The proposal detail screen passes an explicit ref when it is
+ * opened for a service other than the pinned one, e.g. from the cross-service
+ * queue, so its live poll follows the right target rather than the default.
+ */
+export function GateProvider({
+  children,
+  gateRef,
+}: {
+  children: React.ReactNode;
+  gateRef?: GateRef;
+}) {
+  const configured = gateRef ? Boolean(gateRef.gateId && gateRef.targetId) : gateConfigured;
+
   const [state, setState] = useState<GateState | null>(null);
-  const [status, setStatus] = useState<GateStatus>(
-    gateConfigured ? "loading" : "unconfigured",
-  );
+  const [status, setStatus] = useState<GateStatus>(configured ? "loading" : "unconfigured");
   const [error, setError] = useState<string | null>(null);
   const [liveConsumers, setLiveConsumers] = useState(0);
 
@@ -59,11 +72,11 @@ export function GateProvider({ children }: { children: React.ReactNode }) {
   const generation = useRef(0);
 
   const refresh = useCallback(async () => {
-    if (!gateConfigured) return;
+    if (!configured) return;
 
     const mine = ++generation.current;
     try {
-      const next = await readGateState();
+      const next = gateRef ? await readGateStateFor(gateRef) : await readGateState();
       if (mine !== generation.current) return;
       setState(next);
       setStatus("live");
@@ -75,7 +88,7 @@ export function GateProvider({ children }: { children: React.ReactNode }) {
       setStatus("error");
       setError(caught instanceof Error ? caught.message : "Could not read the gate.");
     }
-  }, []);
+  }, [configured, gateRef]);
 
   const registerLive = useCallback(() => {
     setLiveConsumers((count) => count + 1);
@@ -83,7 +96,7 @@ export function GateProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
-    if (!gateConfigured) return;
+    if (!configured) return;
 
     // Scheduled rather than called, so starting the poll is uniformly an
     // external-system subscription rather than a state write in an effect body.
@@ -105,7 +118,7 @@ export function GateProvider({ children }: { children: React.ReactNode }) {
       clearInterval(timer);
       document.removeEventListener("visibilitychange", onVisible);
     };
-  }, [refresh, liveConsumers]);
+  }, [configured, refresh, liveConsumers]);
 
   const value = useMemo<GateContextValue>(
     () => ({ state, status, error, refresh, registerLive }),
