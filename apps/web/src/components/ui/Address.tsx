@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 
+import { nameFor } from "@/lib/gate/roster";
 import { explorerAccountUrl } from "@/lib/stellar/config";
 
 export function truncateAddress(address: string, lead = 6, tail = 6) {
@@ -9,20 +10,32 @@ export function truncateAddress(address: string, lead = 6, tail = 6) {
   return `${address.slice(0, lead)}…${address.slice(-tail)}`;
 }
 
-/** Addresses are always mono, always copyable, always linked out. */
+/**
+ * Addresses are always mono, always copyable, always linked out.
+ *
+ * When the roster names the address, the name leads and the truncated address
+ * follows in muted mono — a teammate is recognised by name, and the address is
+ * still there to verify against. `name={false}` opts out where the name would be
+ * noise (e.g. a row already grouped under that person).
+ */
 export function Address({
   address,
   full = false,
   link = true,
+  name = true,
 }: {
   address: string;
   full?: boolean;
   link?: boolean;
+  name?: boolean;
 }) {
+  const label = name ? nameFor(address) : null;
+
   return (
     <span className="inline-flex items-center gap-2">
+      {label && <span className="text-small font-medium text-foreground">{label}</span>}
       <span
-        className="font-mono text-small text-secondary break-all"
+        className={`font-mono break-all ${label ? "text-micro text-muted" : "text-small text-secondary"}`}
         title={full ? undefined : address}
       >
         {full ? address : truncateAddress(address)}
