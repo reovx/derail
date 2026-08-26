@@ -27,6 +27,7 @@ export type GateFailureReason =
   | "threshold_not_met"
   | "not_registered"
   | "not_found"
+  | "invalid_reason"
   | "insufficient_balance"
   | "network"
   | "unknown";
@@ -114,6 +115,11 @@ const ERROR_BY_NAME: Record<string, GateFailure> = {
     reason: "unknown",
     message: "That approver set is empty, oversized, or has duplicates.",
   },
+  InvalidReason: {
+    reason: "invalid_reason",
+    message:
+      "A rejection needs a stated reason — between 1 and 280 characters. A refusal that explains nothing is the thing this field exists to prevent.",
+  },
 };
 
 /** Index is the contract's discriminant, so position here is load-bearing. */
@@ -130,6 +136,7 @@ const ERROR_NAMES = [
   "ThresholdNotMet",
   "InvalidThreshold",
   "InvalidApprovers",
+  "InvalidReason",
 ] as const;
 
 /**
@@ -311,7 +318,7 @@ export function approve(
 }
 
 export function reject(
-  { proposalId, approver }: { proposalId: number; approver: string },
+  { proposalId, approver, reason }: { proposalId: number; approver: string; reason: string },
   wallet: WalletAdapter,
   onPhase: (phase: GatePhase) => void = noop,
   ref?: Partial<GateRef>,
@@ -319,7 +326,10 @@ export function reject(
   const { gateId, targetId } = requireIds(ref);
   const gate = client(gateId, approver, wallet);
 
-  return run(() => gate.reject({ target: targetId, proposal_id: proposalId, approver }), onPhase);
+  return run(
+    () => gate.reject({ target: targetId, proposal_id: proposalId, approver, reason }),
+    onPhase,
+  );
 }
 
 /**

@@ -21,7 +21,7 @@
 
 use soroban_sdk::{
     contract, contracterror, contractevent, contractimpl, contracttype, symbol_short, vec, Address,
-    BytesN, Env, IntoVal, Vec,
+    BytesN, Env, IntoVal, String, Vec,
 };
 
 const DAY_IN_LEDGERS: u32 = 17_280;
@@ -38,6 +38,11 @@ pub const PROPOSAL_LIFETIME_LEDGERS: u32 = 7 * DAY_IN_LEDGERS;
 /// Bounded so a target cannot be registered with an approver set too large to
 /// iterate within the contract's budget.
 const MAX_APPROVERS: u32 = 20;
+
+/// A rejection reason is mandatory but bounded: long enough for a real
+/// explanation, short enough that it cannot be used to bloat contract storage.
+/// Measured in bytes, which is what `String::len` returns.
+const MAX_REASON_LEN: u32 = 280;
 
 #[derive(Clone)]
 #[contracttype]
@@ -89,6 +94,10 @@ pub struct Proposal {
     pub expires_at_ledger: u32,
     /// Rejections are terminal, and this names who ended it.
     pub rejected_by: Option<Address>,
+    /// Why it was ended, in the rejector's own words. `None` until a rejection,
+    /// and required from that point — a terminal refusal that says nothing is
+    /// the exact frustration the approvers reported.
+    pub rejected_reason: Option<String>,
 }
 
 #[contracterror]
@@ -113,6 +122,8 @@ pub enum Error {
     InvalidThreshold = 10,
     /// Empty, oversized, or duplicate-containing approver set.
     InvalidApprovers = 11,
+    /// A rejection reason that is empty or longer than `MAX_REASON_LEN`.
+    InvalidReason = 12,
 }
 
 // ---------------------------------------------------------------------------
@@ -162,6 +173,9 @@ pub struct UpgradeRejected {
     pub target: Address,
     pub proposal_id: u32,
     pub approver: Address,
+    /// Carried on the event so a consumer watching the ledger learns *why*
+    /// without a follow-up storage read.
+    pub reason: String,
 }
 
 #[contractevent(topics = ["derail", "executed"])]
@@ -261,6 +275,7 @@ impl DerailGate {
             created_ledger: ledger,
             expires_at_ledger: ledger + PROPOSAL_LIFETIME_LEDGERS,
             rejected_by: None,
+            rejected_reason: None,
         };
 
         let key = DataKey::Proposal(target.clone(), id);
@@ -315,16 +330,23 @@ impl DerailGate {
         Ok(())
     }
 
-    /// Reject a proposal. Terminal — one rejection kills it.
+    /// Reject a proposal, with a stated reason. Terminal — one rejection kills it.
+    ///
+    /// The reason is mandatory. A terminal refusal that leaves no explanation is
+    /// exactly the frustration approvers reported: a change stopped with "zero
+    /// explanation" tells the proposer nothing about whether it was policy or a
+    /// mistake. Requiring the reason here makes the *explanation* as permanent
+    /// and non-repudiable as the refusal itself.
     ///
     /// The proposer may reject their own proposal, which is how a proposal is
     /// withdrawn. There is no separate cancel, and a withdrawal should leave the
-    /// same permanent trace as any other rejection.
+    /// same permanent trace — and the same stated reason — as any other rejection.
     pub fn reject(
         env: Env,
         target: Address,
         proposal_id: u32,
         approver: Address,
+        reason: String,
     ) -> Result<(), Error> {
         approver.require_auth();
 
@@ -334,15 +356,21 @@ impl DerailGate {
         if !config.approvers.contains(&approver) {
             return Err(Error::NotAnApprover);
         }
+        let len = reason.len();
+        if len == 0 || len > MAX_REASON_LEN {
+            return Err(Error::InvalidReason);
+        }
 
         proposal.status = ProposalStatus::Rejected;
         proposal.rejected_by = Some(approver.clone());
+        proposal.rejected_reason = Some(reason.clone());
         Self::save(&env, &target, &proposal);
 
         UpgradeRejected {
             target,
             proposal_id,
             approver,
+            reason,
         }
         .publish(&env);
 

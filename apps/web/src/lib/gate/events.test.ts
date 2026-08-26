@@ -111,19 +111,20 @@ describe("describeGateEvent", () => {
     expect(describeGateEvent(event)).toBe("Target registered — 2 of 3 approval required");
   });
 
-  it("says what a rejection means, since it is terminal", () => {
+  it("says what a rejection means, carrying the stated reason", () => {
     expect(
       describeGateEvent({
         kind: "rejected",
         target: GATE_TARGET,
         proposalId: 4,
         approver: "GABC",
+        reason: "fails the audit",
         ledger: 1,
         txHash: "h",
         id: "i",
         at: "2026-08-20T00:00:00Z",
       }),
-    ).toBe("Proposal #4 rejected — terminal");
+    ).toBe("Proposal #4 rejected — fails the audit");
   });
 
   it("says an execution replaced the target's code", () => {

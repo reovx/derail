@@ -34,6 +34,8 @@ export type Proposal = {
   createdLedger: number;
   expiresAtLedger: number;
   rejectedBy: string | null;
+  /** Why it was rejected, in the rejector's words. Null until a rejection. */
+  rejectedReason: string | null;
   /** Approvals from addresses still in the set. Only these count. */
   effectiveApprovals: number;
 };
@@ -135,6 +137,7 @@ type RawProposal = {
   created_ledger?: number;
   expires_at_ledger?: number;
   rejected_by?: string | null;
+  rejected_reason?: string | null;
 };
 
 function toProposal(raw: RawProposal, config: TargetConfig, currentLedger: number): Proposal {
@@ -159,6 +162,7 @@ function toProposal(raw: RawProposal, config: TargetConfig, currentLedger: numbe
     createdLedger: Number(raw.created_ledger ?? 0),
     expiresAtLedger: Number(raw.expires_at_ledger ?? 0),
     rejectedBy: raw.rejected_by ?? null,
+    rejectedReason: raw.rejected_reason ?? null,
     effectiveApprovals: effective,
   };
 }

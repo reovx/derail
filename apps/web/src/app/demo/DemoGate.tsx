@@ -199,6 +199,8 @@ function DecisionPanel({
   const [phase, setPhase] = useState<GatePhase | null>(null);
   const [action, setAction] = useState<"approve" | "reject" | "execute" | null>(null);
   const [result, setResult] = useState<GateResult | null>(null);
+  // A rejection carries a mandatory on-chain reason, the same as the real gate.
+  const [reason, setReason] = useState("");
 
   if (!proposal) {
     return <p className="text-body text-muted">Reading your proposal from the ledger…</p>;
@@ -215,7 +217,12 @@ function DecisionPanel({
       kind === "approve"
         ? approve({ proposalId: proposal.id, approver }, adapter, setPhase, gateRef)
         : kind === "reject"
-          ? reject({ proposalId: proposal.id, approver }, adapter, setPhase, gateRef)
+          ? reject(
+              { proposalId: proposal.id, approver, reason: reason.trim() },
+              adapter,
+              setPhase,
+              gateRef,
+            )
           : execute({ proposalId: proposal.id, from: approver }, adapter, setPhase, gateRef);
     const outcome = await call;
     setPhase(null);
@@ -272,13 +279,32 @@ function DecisionPanel({
       )}
 
       {proposal.status === "Open" && !alreadyActed && (
-        <div className="flex flex-wrap gap-3">
-          <Button variant="primary" loading={busy && action === "approve"} disabled={busy} onClick={() => void run("approve")}>
-            {busy && action === "approve" ? PHASE_LABEL[phase!] : "Approve"}
-          </Button>
-          <Button variant="destructive" loading={busy && action === "reject"} disabled={busy} onClick={() => void run("reject")}>
-            {busy && action === "reject" ? PHASE_LABEL[phase!] : "Reject"}
-          </Button>
+        <div className="flex flex-col gap-3">
+          <label htmlFor="demo-reject-reason" className="sr-only">
+            Reason, required to reject
+          </label>
+          <input
+            id="demo-reject-reason"
+            value={reason}
+            onChange={(event) => setReason(event.target.value)}
+            disabled={busy}
+            maxLength={280}
+            placeholder="A reason — required to reject (e.g. “ships without the audit fix”)"
+            className="w-full rounded-[8px] border border-border bg-elevated px-3 py-2 text-body text-foreground outline-none transition-colors placeholder:text-muted focus:border-muted"
+          />
+          <div className="flex flex-wrap gap-3">
+            <Button variant="primary" loading={busy && action === "approve"} disabled={busy} onClick={() => void run("approve")}>
+              {busy && action === "approve" ? PHASE_LABEL[phase!] : "Approve"}
+            </Button>
+            <Button
+              variant="destructive"
+              loading={busy && action === "reject"}
+              disabled={busy || reason.trim().length === 0}
+              onClick={() => void run("reject")}
+            >
+              {busy && action === "reject" ? PHASE_LABEL[phase!] : "Reject"}
+            </Button>
+          </div>
         </div>
       )}
 
