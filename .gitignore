@@ -24,6 +24,8 @@ yarn-error.log*
 # Working notes. Kept on disk, out of the repo.
 docs/
 
+video/
+
 # Rewritten by `next dev` on every run.
 apps/web/AGENTS.md
 apps/web/CLAUDE.md

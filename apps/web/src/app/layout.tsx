@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
 import { Chivo, IBM_Plex_Mono, IBM_Plex_Sans } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import { SpeedInsights } from "@vercel/speed-insights/next";
 
 import { AppFrame } from "@/components/layout/AppFrame";
 import "./globals.css";
@@ -58,6 +60,11 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         {/* AppFrame decides between the marketing front door (`/`) and the
             console: the wallet and the gate's poll live only on the latter. */}
         <AppFrame>{children}</AppFrame>
+        {/* Product analytics (page views + custom events) and real-user
+            performance monitoring. Both are no-ops until enabled on the Vercel
+            project, so local and CI runs stay silent — see README § Monitoring. */}
+        <Analytics />
+        <SpeedInsights />
       </body>
     </html>
   );
