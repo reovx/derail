@@ -13,7 +13,7 @@ extern crate std;
 
 use soroban_sdk::{
     testutils::{Address as _, Events, Ledger},
-    vec, Address, BytesN, Env, Vec,
+    vec, Address, BytesN, Env, String, Vec,
 };
 
 use crate::{DerailGate, DerailGateClient, Error, ProposalStatus, PROPOSAL_LIFETIME_LEDGERS};
@@ -108,6 +108,10 @@ impl Fixture {
     fn propose(&self, byte: u8) -> u32 {
         self.gate
             .propose_upgrade(&self.target, &self.hash(byte), &self.approver(0))
+    }
+
+    fn reason(&self, text: &str) -> String {
+        String::from_str(&self.env, text)
     }
 }
 
@@ -379,11 +383,13 @@ fn one_rejection_kills_the_proposal() {
     let id = f.propose(1);
     f.gate.approve(&f.target, &id, &f.approver(1));
 
-    f.gate.reject(&f.target, &id, &f.approver(2));
+    f.gate
+        .reject(&f.target, &id, &f.approver(2), &f.reason("fails the audit"));
 
     let proposal = f.gate.get_proposal(&f.target, &id);
     assert_eq!(proposal.status, ProposalStatus::Rejected);
     assert_eq!(proposal.rejected_by, Some(f.approver(2)));
+    assert_eq!(proposal.rejected_reason, Some(f.reason("fails the audit")));
 
     assert_eq!(
         f.gate.try_approve(&f.target, &id, &f.approver(1)),
@@ -400,10 +406,49 @@ fn the_proposer_may_withdraw_by_rejecting() {
     let f = Fixture::new();
     let id = f.propose(1);
 
-    f.gate.reject(&f.target, &id, &f.approver(0));
+    f.gate.reject(
+        &f.target,
+        &id,
+        &f.approver(0),
+        &f.reason("superseded, will resubmit"),
+    );
     assert_eq!(
         f.gate.get_proposal(&f.target, &id).status,
         ProposalStatus::Rejected
+    );
+}
+
+#[test]
+fn a_rejection_reason_is_mandatory() {
+    let f = Fixture::new();
+    let id = f.propose(1);
+
+    // Empty is refused: a terminal refusal that explains nothing is the exact
+    // frustration this field exists to answer.
+    assert_eq!(
+        f.gate
+            .try_reject(&f.target, &id, &f.approver(2), &f.reason("")),
+        Err(Ok(Error::InvalidReason))
+    );
+    // And the proposal is untouched — a refused reject does not settle it.
+    assert_eq!(
+        f.gate.get_proposal(&f.target, &id).status,
+        ProposalStatus::Open
+    );
+}
+
+#[test]
+fn an_oversized_rejection_reason_is_refused() {
+    let f = Fixture::new();
+    let id = f.propose(1);
+
+    // 281 bytes — one past MAX_REASON_LEN, so a reason cannot be used to bloat
+    // contract storage.
+    let long: std::string::String = core::iter::repeat('x').take(281).collect();
+    assert_eq!(
+        f.gate
+            .try_reject(&f.target, &id, &f.approver(2), &f.reason(&long)),
+        Err(Ok(Error::InvalidReason))
     );
 }
 
@@ -571,7 +616,12 @@ fn every_write_emits_its_event() {
     f.gate.approve(&f.target, &id, &f.approver(1));
     assert_eq!(f.env.events().all().events().len(), 1, "approved");
 
-    f.gate.reject(&f.target, &id, &f.approver(2));
+    f.gate.reject(
+        &f.target,
+        &id,
+        &f.approver(2),
+        &f.reason("blocks the release"),
+    );
     assert_eq!(f.env.events().all().events().len(), 1, "rejected");
 
     let next = f.propose(4);

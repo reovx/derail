@@ -213,6 +213,12 @@
                   },
                   {
                     "key": {
+                      "symbol": "rejected_reason"
+                    },
+                    "val": "void"
+                  },
+                  {
+                    "key": {
                       "symbol": "status"
                     },
                     "val": {

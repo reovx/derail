@@ -54,7 +54,7 @@ export type GateEvent = GateEventBase &
     | { kind: "registered"; approvers: string[]; threshold: number }
     | { kind: "proposed"; proposalId: number; wasmHash: string; proposer: string }
     | { kind: "approved"; proposalId: number; approver: string }
-    | { kind: "rejected"; proposalId: number; approver: string }
+    | { kind: "rejected"; proposalId: number; approver: string; reason: string }
     | { kind: "executed"; proposalId: number; wasmHash: string }
     | { kind: "approvers"; approvers: string[]; threshold: number }
   );
@@ -161,6 +161,7 @@ export function decodeGateEvent(raw: RawEvent): GateEvent | null {
         kind: "rejected",
         proposalId: Number(data.proposal_id ?? 0),
         approver: String(data.approver ?? ""),
+        reason: String(data.reason ?? ""),
       };
     case "executed":
       return {
@@ -184,7 +185,7 @@ export function describeGateEvent(event: GateEvent): string {
     case "approved":
       return `Proposal #${event.proposalId} approved`;
     case "rejected":
-      return `Proposal #${event.proposalId} rejected — terminal`;
+      return `Proposal #${event.proposalId} rejected — ${event.reason}`;
     case "executed":
       return `Proposal #${event.proposalId} executed — the target's code was replaced`;
   }

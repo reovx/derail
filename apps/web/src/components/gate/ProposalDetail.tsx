@@ -27,6 +27,9 @@ const PHASE_LABEL: Record<GatePhase, string> = {
   submitting: "Submitting…",
 };
 
+/** Mirrors `MAX_REASON_LEN` in `contracts/derail_gate/src/lib.rs`. */
+const REASON_MAX = 280;
+
 /**
  * One proposal, and the decision it is asking for — `SPEC-UI-UX.md` §5.5.
  *
@@ -39,10 +42,15 @@ export function ProposalDetail({
   initial,
   proposalId,
   targetId,
+  backHref = "/gate",
+  backLabel = "Gate",
 }: {
   initial: GateState | null;
   proposalId: number;
   targetId: string;
+  /** Where "back" returns to — the gate by default, the queue when opened from it. */
+  backHref?: string;
+  backLabel?: string;
 }) {
   const { state: live, status, error, refresh } = useGateLive();
   // Read before any early return: the branches below change between renders,
@@ -70,8 +78,8 @@ export function ProposalDetail({
       <Notice tone="neutral" title={`No proposal #${proposalId} on this target`}>
         This gate holds {state.proposals.length}{" "}
         {state.proposals.length === 1 ? "proposal" : "proposals"}.{" "}
-        <Link href="/gate" className="text-secondary underline underline-offset-2">
-          Back to the gate
+        <Link href={backHref} className="text-secondary underline underline-offset-2">
+          Back to the {backLabel.toLowerCase()}
         </Link>
         .
       </Notice>
@@ -91,10 +99,10 @@ export function ProposalDetail({
 
       <header className="flex flex-col gap-3 border-b border-border pb-5">
         <Link
-          href="/gate"
+          href={backHref}
           className="w-fit text-small text-muted transition-colors hover:text-foreground"
         >
-          ← Gate
+          ← {backLabel}
         </Link>
 
         <div className="flex flex-wrap items-center gap-3">
@@ -175,6 +183,11 @@ export function ProposalDetail({
           Ended by <Address address={proposal.rejectedBy} />. One rejection is terminal. This record
           is the thing nothing else in the ecosystem keeps — an upgrade that did not happen, with
           the address that made sure of it.
+          {proposal.rejectedReason && (
+            <span className="mt-2.5 block border-l-2 border-current/30 pl-3 text-secondary">
+              “{proposal.rejectedReason}”
+            </span>
+          )}
         </Notice>
       )}
 
@@ -225,20 +238,30 @@ function Actions({
   const { address, adapter, status: walletStatus, connect } = useWallet();
   const [phase, setPhase] = useState<GatePhase | null>(null);
   const [result, setResult] = useState<GateResult | null>(null);
+  // A rejection is terminal, so it is a two-step action: the button arms the
+  // reason panel, and only a stated reason confirms it.
+  const [rejecting, setRejecting] = useState(false);
+  const [reason, setReason] = useState("");
 
   const role = roleFor(proposal, config.approvers, address);
   const canReject = mayReject(proposal, config.approvers, address);
   const busy = phase !== null;
+  const reasonValid = reason.trim().length > 0 && reason.length <= REASON_MAX;
 
   async function act(action: "approve" | "reject" | "execute") {
     if (!address) return;
+    if (action === "reject" && !reasonValid) return;
     setResult(null);
 
     const run =
       action === "approve"
         ? approve({ proposalId: proposal.id, approver: address }, adapter, setPhase)
         : action === "reject"
-          ? reject({ proposalId: proposal.id, approver: address }, adapter, setPhase)
+          ? reject(
+              { proposalId: proposal.id, approver: address, reason: reason.trim() },
+              adapter,
+              setPhase,
+            )
           : execute({ proposalId: proposal.id, from: address }, adapter, setPhase);
 
     const outcome = await run;
@@ -247,7 +270,11 @@ function Actions({
 
     // The ledger is the source of truth, so a success re-reads rather than
     // patching local state to what we hoped happened.
-    if (outcome.status === "success") onDone();
+    if (outcome.status === "success") {
+      setRejecting(false);
+      setReason("");
+      onDone();
+    }
   }
 
   const nothingOnOffer = role.can === "nothing" && !canReject;
@@ -288,19 +315,29 @@ function Actions({
         <>
           <div className="flex flex-wrap items-center gap-3">
             {role.can === "approve" && (
-              <Button variant="primary" loading={busy} onClick={() => act("approve")}>
+              <Button
+                variant="primary"
+                loading={busy}
+                disabled={rejecting}
+                onClick={() => act("approve")}
+              >
                 {busy ? PHASE_LABEL[phase!] : "Approve"}
               </Button>
             )}
 
             {role.can === "execute" && (
-              <Button variant="primary" loading={busy} onClick={() => act("execute")}>
+              <Button
+                variant="primary"
+                loading={busy}
+                disabled={rejecting}
+                onClick={() => act("execute")}
+              >
                 {busy ? PHASE_LABEL[phase!] : "Execute the upgrade"}
               </Button>
             )}
 
-            {canReject && (
-              <Button variant="destructive" disabled={busy} onClick={() => act("reject")}>
+            {canReject && !rejecting && (
+              <Button variant="destructive" disabled={busy} onClick={() => setRejecting(true)}>
                 Reject
               </Button>
             )}
@@ -316,12 +353,96 @@ function Actions({
             )}
           </div>
 
-          <Consequence role={role.can} canReject={canReject} reason={
-            role.can === "nothing" ? role.reason : null
-          } />
+          {canReject && rejecting && (
+            <RejectPanel
+              reason={reason}
+              onReason={setReason}
+              onConfirm={() => act("reject")}
+              onCancel={() => {
+                setRejecting(false);
+                setReason("");
+              }}
+              phase={phase}
+              busy={busy}
+              valid={reasonValid}
+            />
+          )}
+
+          {!rejecting && (
+            <Consequence
+              role={role.can}
+              canReject={canReject}
+              reason={role.can === "nothing" ? role.reason : null}
+            />
+          )}
         </>
       )}
     </section>
+  );
+}
+
+/**
+ * The reason a rejection carries — required, on-chain, permanent.
+ *
+ * Approvers reported changes stopped "with zero explanation", unable to tell a
+ * policy call from a mistake. The contract now refuses a reasonless rejection,
+ * so this is not a courtesy field: it is the input the terminal action needs,
+ * and it says so.
+ */
+function RejectPanel({
+  reason,
+  onReason,
+  onConfirm,
+  onCancel,
+  phase,
+  busy,
+  valid,
+}: {
+  reason: string;
+  onReason: (value: string) => void;
+  onConfirm: () => void;
+  onCancel: () => void;
+  phase: GatePhase | null;
+  busy: boolean;
+  valid: boolean;
+}) {
+  const over = reason.length > REASON_MAX;
+
+  return (
+    <div className="flex max-w-[68ch] flex-col gap-3 rounded-[10px] border border-border bg-surface p-4">
+      <label htmlFor="reject-reason" className="text-body font-medium text-foreground">
+        Why are you rejecting this?
+      </label>
+      <p className="text-small text-muted">
+        Recorded on-chain against your address, permanently, and shown to the proposer. One
+        rejection is terminal and cannot be undone.
+      </p>
+
+      <textarea
+        id="reject-reason"
+        value={reason}
+        onChange={(event) => onReason(event.target.value)}
+        disabled={busy}
+        rows={3}
+        autoFocus
+        placeholder="e.g. Fails the audit — the refund path is unguarded. Resubmit with the check restored."
+        className="w-full resize-y rounded-[8px] border border-border bg-elevated px-3 py-2 text-body text-foreground outline-none transition-colors placeholder:text-muted focus:border-muted"
+      />
+
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <span className={`text-small tabular-nums ${over ? "text-[var(--status-failure)]" : "text-muted"}`}>
+          {reason.length} / {REASON_MAX}
+        </span>
+        <div className="flex items-center gap-3">
+          <Button variant="secondary" onClick={onCancel} disabled={busy}>
+            Cancel
+          </Button>
+          <Button variant="destructive" loading={busy} disabled={!valid || busy} onClick={onConfirm}>
+            {busy ? PHASE_LABEL[phase!] : "Confirm rejection"}
+          </Button>
+        </div>
+      </div>
+    </div>
   );
 }
 

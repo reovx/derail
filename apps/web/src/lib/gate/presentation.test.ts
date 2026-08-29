@@ -28,6 +28,7 @@ function proposal(overrides: Partial<Proposal> = {}): Proposal {
     createdLedger: 1000,
     expiresAtLedger: 1000 + 7 * 17_280,
     rejectedBy: null,
+    rejectedReason: null,
     effectiveApprovals: 0,
     ...overrides,
   };

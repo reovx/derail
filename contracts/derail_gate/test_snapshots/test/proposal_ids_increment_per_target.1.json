@@ -178,6 +178,12 @@
                   },
                   {
                     "key": {
+                      "symbol": "rejected_reason"
+                    },
+                    "val": "void"
+                  },
+                  {
+                    "key": {
                       "symbol": "status"
                     },
                     "val": {
@@ -278,6 +284,12 @@
                   {
                     "key": {
                       "symbol": "rejected_by"
+                    },
+                    "val": "void"
+                  },
+                  {
+                    "key": {
+                      "symbol": "rejected_reason"
                     },
                     "val": "void"
                   },

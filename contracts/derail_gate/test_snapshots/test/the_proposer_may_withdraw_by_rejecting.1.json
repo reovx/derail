@@ -88,6 +88,9 @@
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4"
+                },
+                {
+                  "string": "superseded, will resubmit"
                 }
               ]
             }
@@ -177,6 +180,14 @@
                     },
                     "val": {
                       "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAITA4"
+                    }
+                  },
+                  {
+                    "key": {
+                      "symbol": "rejected_reason"
+                    },
+                    "val": {
+                      "string": "superseded, will resubmit"
                     }
                   },
                   {

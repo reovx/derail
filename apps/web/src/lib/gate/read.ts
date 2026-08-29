@@ -34,6 +34,8 @@ export type Proposal = {
   createdLedger: number;
   expiresAtLedger: number;
   rejectedBy: string | null;
+  /** Why it was rejected, in the rejector's words. Null until a rejection. */
+  rejectedReason: string | null;
   /** Approvals from addresses still in the set. Only these count. */
   effectiveApprovals: number;
 };
@@ -135,6 +137,7 @@ type RawProposal = {
   created_ledger?: number;
   expires_at_ledger?: number;
   rejected_by?: string | null;
+  rejected_reason?: string | null;
 };
 
 function toProposal(raw: RawProposal, config: TargetConfig, currentLedger: number): Proposal {
@@ -159,6 +162,7 @@ function toProposal(raw: RawProposal, config: TargetConfig, currentLedger: numbe
     createdLedger: Number(raw.created_ledger ?? 0),
     expiresAtLedger: Number(raw.expires_at_ledger ?? 0),
     rejectedBy: raw.rejected_by ?? null,
+    rejectedReason: raw.rejected_reason ?? null,
     effectiveApprovals: effective,
   };
 }
@@ -225,6 +229,38 @@ export async function readGateStateFor(ref: GateRef, eventLimit = 50): Promise<G
     .map((entry) => toProposal(entry, config, latest.sequence));
 
   return { config, proposals, events, ledger: latest.sequence };
+}
+
+/**
+ * Every configured service's gate state at once — the cross-service queue.
+ *
+ * One service failing to read must not empty the whole queue, so each is
+ * resolved independently and a failure becomes an entry with a null state and
+ * the error, rather than a rejected promise that takes the others down with it.
+ */
+export type ServiceState = {
+  targetId: string;
+  state: GateState | null;
+  error: string | null;
+};
+
+export async function readServiceStates(
+  refs: GateRef[],
+  eventLimit = 20,
+): Promise<ServiceState[]> {
+  return Promise.all(
+    refs.map(async (ref): Promise<ServiceState> => {
+      try {
+        return { targetId: ref.targetId, state: await readGateStateFor(ref, eventLimit), error: null };
+      } catch (caught) {
+        return {
+          targetId: ref.targetId,
+          state: null,
+          error: caught instanceof Error ? caught.message : "Could not read this service.",
+        };
+      }
+    }),
+  );
 }
 
 /** Just a target's approver set and threshold — one round trip, no proposals. */

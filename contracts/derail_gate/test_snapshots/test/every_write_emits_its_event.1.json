@@ -113,6 +113,9 @@
                 },
                 {
                   "address": "CAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAMDR4"
+                },
+                {
+                  "string": "blocks the release"
                 }
               ]
             }
@@ -285,6 +288,14 @@
                   },
                   {
                     "key": {
+                      "symbol": "rejected_reason"
+                    },
+                    "val": {
+                      "string": "blocks the release"
+                    }
+                  },
+                  {
+                    "key": {
                       "symbol": "status"
                     },
                     "val": {
@@ -392,6 +403,12 @@
                   {
                     "key": {
                       "symbol": "rejected_by"
+                    },
+                    "val": "void"
+                  },
+                  {
+                    "key": {
+                      "symbol": "rejected_reason"
                     },
                     "val": "void"
                   },
