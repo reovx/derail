@@ -444,7 +444,7 @@ fn an_oversized_rejection_reason_is_refused() {
 
     // 281 bytes — one past MAX_REASON_LEN, so a reason cannot be used to bloat
     // contract storage.
-    let long: std::string::String = core::iter::repeat('x').take(281).collect();
+    let long: std::string::String = "x".repeat(281);
     assert_eq!(
         f.gate
             .try_reject(&f.target, &id, &f.approver(2), &f.reason(&long)),
